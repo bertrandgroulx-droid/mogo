@@ -161,17 +161,45 @@
   .runners .veg:nth-child(3) { margin-top: 2px; }
   .runners .veg:nth-child(4) { margin-top: 12px; }
   .veg {
+    position: relative;
     font-size: 1.3rem;
     line-height: 1;
     filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
     transform-origin: 50% 95%;
     animation: run 0.45s ease-in-out infinite;
   }
+  /* Two little legs under each veggie that pump back and forth as it runs. */
+  .veg::before,
+  .veg::after {
+    content: "";
+    position: absolute;
+    bottom: -5px;
+    width: 3px;
+    height: 9px;
+    border-radius: 0 0 2px 2px;
+    background: #3a260f;
+    transform-origin: top center;
+    animation-duration: 0.45s;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    animation-delay: inherit; /* keep each veggie's legs in step with its body */
+  }
+  .veg::before { left: 41%; animation-name: leg-run; }
+  .veg::after  { left: 53%; animation-name: leg-run-alt; }
   /* A running gait: push down to "grip" the surface, then lift and lean forward. */
   @keyframes run {
     0%   { transform: translateY(1px)  rotate(-20deg); }
     50%  { transform: translateY(-7px) rotate(-2deg); }
     100% { transform: translateY(1px)  rotate(-20deg); }
+  }
+  /* Legs swing in opposite phase so it looks like a running stride. */
+  @keyframes leg-run {
+    0%, 100% { transform: rotate(38deg); }
+    50%      { transform: rotate(-38deg); }
+  }
+  @keyframes leg-run-alt {
+    0%, 100% { transform: rotate(-38deg); }
+    50%      { transform: rotate(38deg); }
   }
 
   .loader-text {
@@ -480,8 +508,8 @@
 
   async function discover() {
     startLoader();
-    // A tiny artificial floor so the delightful loader is actually seen.
-    const minShow = new Promise((r) => setTimeout(r, 1400));
+    // Show the running-veggies animation for a full 2 seconds before results.
+    const minShow = new Promise((r) => setTimeout(r, 2000));
 
     const { country, justReset } = pickCountry();
     const note = justReset
