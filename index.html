@@ -232,6 +232,12 @@
     background: #2c5364;
   }
   .dish-body { padding: 0.8rem 0.9rem 1rem; }
+  .fallback-card .dish-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 90px;
+  }
   .dish-name { font-weight: 700; font-size: 1.05rem; }
   .dish-link {
     margin-top: 0.4rem;
@@ -371,6 +377,16 @@
     return arr[Math.floor(Math.random() * arr.length)];
   }
 
+  // Fisher–Yates shuffle (returns a new array) so we can try countries in a random order.
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
   async function getJSON(url) {
     const res = await fetch(url);
     if (!res.ok) throw new Error("Network error: " + res.status);
@@ -391,16 +407,38 @@
 
       if (!areas.length) throw new Error("No countries returned.");
 
-      // 2. Pick a random country and fetch its most popular dishes.
-      const area = pickRandom(areas);
-      const dishData = await getJSON(
-        "https://www.themealdb.com/api/json/v1/1/filter.php?a=" + encodeURIComponent(area)
-      );
-      const dishes = (dishData.meals || []).slice(0, 8);
+      // 2. Try countries in random order until one returns dishes. This keeps us
+      //    from landing on an empty result and showing the user nothing.
+      const shuffled = shuffle(areas);
+      let chosen = shuffled[0];
+      let dishes = [];
+
+      for (let i = 0; i < Math.min(6, shuffled.length); i++) {
+        const area = shuffled[i];
+        try {
+          const dishData = await getJSON(
+            "https://www.themealdb.com/api/json/v1/1/filter.php?a=" + encodeURIComponent(area)
+          );
+          const found = dishData.meals || [];
+          if (found.length) {
+            chosen = area;
+            dishes = found.slice(0, 8);
+            break;
+          }
+        } catch (_) {
+          // This country's request failed — just try the next one.
+        }
+      }
 
       await minShow;
       stopLoader();
-      renderResults(area, dishes);
+
+      if (dishes.length) {
+        renderResults(chosen, dishes);
+      } else {
+        // The recipe API gave us no dishes — still hand the user real recipe links.
+        renderFallback(chosen);
+      }
     } catch (err) {
       await minShow;
       stopLoader();
@@ -408,15 +446,12 @@
     }
   }
 
-  function renderResults(area, dishes) {
-    const info = AREA_INFO[area] || { country: area, flag: "🍴" };
+  function countryInfo(area) {
+    return AREA_INFO[area] || { country: area, flag: "🍴" };
+  }
 
-    if (!dishes.length) {
-      results.innerHTML =
-        `<div class="message">We landed in <strong>${info.flag} ${info.country}</strong>, ` +
-        `but couldn't find dishes this time. Press the button to try again!</div>`;
-      return;
-    }
+  function renderResults(area, dishes) {
+    const info = countryInfo(area);
 
     const cards = dishes.map((d) => {
       const recipeUrl = "https://www.themealdb.com/meal/" + encodeURIComponent(d.idMeal);
@@ -436,6 +471,37 @@
         `<div class="country-flag">${info.flag}</div>` +
         `<h2 class="country-name">${info.country}</h2>` +
         `<p class="country-sub">Most popular dishes — click any to see the full recipe</p>` +
+        `<button type="button" class="spin-again-btn">🔄 Spin again</button>` +
+      `</div>` +
+      `<div class="dish-grid">${cards}</div>`;
+
+    const again = results.querySelector(".spin-again-btn");
+    if (again) again.addEventListener("click", discover);
+  }
+
+  // Shown when the recipe API returns a country but no dishes: we still give the
+  // user real, working links to recipes for that country's popular dishes.
+  function renderFallback(area) {
+    const info = countryInfo(area);
+    const q = encodeURIComponent(info.country + " popular traditional dishes recipes");
+    const links = [
+      { label: "🔎 Search recipes on Google", url: "https://www.google.com/search?q=" + q },
+      { label: "🥘 Browse on Allrecipes", url: "https://www.allrecipes.com/search?q=" + encodeURIComponent(info.country + " recipes") },
+      { label: "🍲 Explore TheMealDB", url: "https://www.themealdb.com" },
+    ];
+
+    const cards = links.map((l) =>
+      `<a class="dish-card fallback-card" href="${l.url}" target="_blank" rel="noopener">` +
+        `<div class="dish-body"><div class="dish-name">${l.label}</div>` +
+        `<div class="dish-link">Open →</div></div>` +
+      `</a>`
+    ).join("");
+
+    results.innerHTML =
+      `<div class="country-banner">` +
+        `<div class="country-flag">${info.flag}</div>` +
+        `<h2 class="country-name">${info.country}</h2>` +
+        `<p class="country-sub">Here are recipes for ${info.country}'s most popular dishes</p>` +
         `<button type="button" class="spin-again-btn">🔄 Spin again</button>` +
       `</div>` +
       `<div class="dish-grid">${cards}</div>`;
