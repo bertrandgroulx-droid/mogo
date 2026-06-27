@@ -11,6 +11,11 @@ you company during the search.
 
 - 🎲 **One-click discovery** — picks a random country every press, and never
   repeats one until you've travelled through all of them.
+- 🎲 **Random or pick** — hit the button for a random country, or choose any of
+  the 199 from the dropdown.
+- 📊 **Country facts** — each country shows its population and area (km²) plus
+  world rankings (e.g. "4th largest", "9th most populous").
+- 🧭 **Running count** — tracks how many of the 199 countries you've explored.
 - ◀ ▶ **Browse your history** — arrows on either side of the country let you
   step back and forward through the countries you've discovered this session.
 - 🥦 **Diet badges & filter** — each dish is tagged V (vegetarian) and/or GF

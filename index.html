@@ -288,6 +288,21 @@
   }
   .country-name a .map-pin { font-size: 1.3rem; margin-left: 0.3rem; }
   .country-sub { color: var(--muted); margin: 0; }
+  .country-stats {
+    margin: 0.1rem auto 0.5rem;
+    max-width: 560px;
+    color: var(--text);
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+  .country-stats .stat-rank { color: var(--accent); font-weight: 700; }
+  .progress {
+    margin: 0.9rem 0 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-align: center;
+  }
   .reset-note {
     margin: 0 auto 0.9rem;
     max-width: 520px;
@@ -394,6 +409,10 @@
   <button id="discoverBtn" class="discover-btn">🍽️ Surprise me with a country!</button>
 
   <div class="controls">
+    <label for="countryPicker">Country:</label>
+    <select id="countryPicker" aria-label="Jump to a country">
+      <option value="">🎲 Random — or pick one…</option>
+    </select>
     <label for="dietFilter">Filter:</label>
     <select id="dietFilter" aria-label="Filter dishes by type">
       <option value="all">Show all</option>
@@ -405,6 +424,7 @@
       <option value="other">Other</option>
     </select>
   </div>
+  <p id="progress" class="progress" aria-live="polite"></p>
 
   <!-- Spinning Earth with vegetables running on top -->
   <div id="loader" class="loader" aria-hidden="true">
@@ -645,6 +665,109 @@
     { country: "Solomon Islands", flag: "🇸🇧", dishes: [["Poi", "fermented taro paste", "v", 1], ["Fish and Cassava", "fish with cassava", "fish", 1], ["Coconut Pudding", "baked coconut pudding", "v", 1], ["Kumara", "sweet potato staple", "v", 1], ["Pana", "yam dish", "v", 1]] },
   ];
 
+  // Approximate population and area (km²) per country, used for the stats line
+  // and world rankings. Figures are rounded and meant as fun context.
+  const STATS = {
+    "United States": [331000000, 9833517], "United Kingdom": [67000000, 243610], "Canada": [38000000, 9984670],
+    "China": [1412000000, 9596960], "Croatia": [3900000, 56594], "Netherlands": [17500000, 41850],
+    "Egypt": [109000000, 1001450], "Philippines": [113000000, 300000], "France": [65000000, 551695],
+    "Greece": [10400000, 131957], "India": [1417000000, 3287263], "Ireland": [5000000, 70273],
+    "Italy": [59000000, 301340], "Jamaica": [2800000, 10991], "Japan": [125000000, 377975],
+    "Kenya": [54000000, 580367], "Malaysia": [33000000, 330803], "Mexico": [128000000, 1964375],
+    "Morocco": [37000000, 446550], "Poland": [38000000, 312696], "Portugal": [10300000, 92090],
+    "Russia": [144000000, 17098242], "Spain": [47000000, 505992], "Thailand": [70000000, 513120],
+    "Tunisia": [12000000, 163610], "Turkey": [85000000, 783562], "Ukraine": [41000000, 603550],
+    "Vietnam": [98000000, 331212], "South Korea": [51700000, 100210], "Germany": [83000000, 357114],
+    "Brazil": [214000000, 8515767], "Argentina": [46000000, 2780400], "Peru": [34000000, 1285216],
+    "Lebanon": [5500000, 10452], "Iran": [88000000, 1648195], "Indonesia": [276000000, 1904569],
+    "Ethiopia": [120000000, 1104300], "Nigeria": [218000000, 923768], "South Africa": [60000000, 1221037],
+    "Sweden": [10400000, 450295], "Switzerland": [8700000, 41284], "Austria": [9000000, 83871],
+    "Hungary": [9700000, 93028], "Belgium": [11600000, 30528], "Cuba": [11300000, 109884],
+    "Colombia": [51000000, 1141748], "Australia": [26000000, 7692024], "Pakistan": [231000000, 881912],
+    "Sri Lanka": [22000000, 65610], "Singapore": [5900000, 728], "Israel": [9500000, 22072],
+    "Czech Republic": [10500000, 78867], "Norway": [5400000, 385207], "Denmark": [5800000, 43094],
+    "Finland": [5500000, 338424], "Iceland": [375000, 103000], "Romania": [19000000, 238398],
+    "Bulgaria": [6900000, 110879], "Serbia": [6800000, 88361], "Slovakia": [5400000, 49035],
+    "Slovenia": [2100000, 20273], "Lithuania": [2800000, 65300], "Latvia": [1900000, 64589],
+    "Estonia": [1300000, 45228], "Georgia": [3700000, 69700], "Armenia": [2800000, 29743],
+    "Azerbaijan": [10100000, 86600], "Albania": [2800000, 28748], "Bosnia and Herzegovina": [3300000, 51197],
+    "Saudi Arabia": [35000000, 2149690], "Iraq": [43000000, 438317], "Syria": [22000000, 185180],
+    "Jordan": [11000000, 89342], "Palestine": [5300000, 6020], "Yemen": [33000000, 527968],
+    "United Arab Emirates": [9900000, 83600], "Afghanistan": [40000000, 652230], "Bangladesh": [171000000, 147570],
+    "Nepal": [30000000, 147181], "Bhutan": [780000, 38394], "Myanmar": [54000000, 676578],
+    "Cambodia": [17000000, 181035], "Laos": [7500000, 236800], "Taiwan": [23500000, 36193],
+    "Mongolia": [3400000, 1564110], "Kazakhstan": [19000000, 2724900], "Uzbekistan": [35000000, 447400],
+    "Maldives": [540000, 300], "Ghana": [32000000, 238533], "Senegal": [17000000, 196722],
+    "Tanzania": [63000000, 945087], "Algeria": [44000000, 2381741], "Cameroon": [27000000, 475442],
+    "Ivory Coast": [27000000, 322463], "Zimbabwe": [16000000, 390757], "Uganda": [47000000, 241550],
+    "Madagascar": [28000000, 587041], "Sudan": [46000000, 1886068], "DR Congo": [99000000, 2344858],
+    "Angola": [35000000, 1246700], "Venezuela": [28000000, 916445], "Chile": [19000000, 756102],
+    "Ecuador": [18000000, 256369], "Bolivia": [12000000, 1098581], "Uruguay": [3500000, 176215],
+    "Paraguay": [7200000, 406752], "Guatemala": [17000000, 108889], "Costa Rica": [5100000, 51100],
+    "Panama": [4400000, 75417], "Dominican Republic": [11000000, 48671], "Puerto Rico": [3200000, 9104],
+    "Haiti": [11500000, 27750], "Trinidad and Tobago": [1400000, 5130], "El Salvador": [6500000, 21041],
+    "New Zealand": [5100000, 268838], "Fiji": [900000, 18274], "North Macedonia": [2100000, 25713],
+    "Montenegro": [620000, 13812], "Kosovo": [1800000, 10887], "Moldova": [2600000, 33846],
+    "Belarus": [9400000, 207600], "Luxembourg": [640000, 2586], "Malta": [520000, 316],
+    "Cyprus": [1200000, 9251], "Monaco": [38000, 2], "Andorra": [79000, 468],
+    "Liechtenstein": [39000, 160], "San Marino": [34000, 61], "Kuwait": [4300000, 17818],
+    "Qatar": [2700000, 11586], "Bahrain": [1500000, 778], "Oman": [4500000, 309500],
+    "Turkmenistan": [6100000, 488100], "Kyrgyzstan": [6700000, 199951], "Tajikistan": [9700000, 143100],
+    "Hong Kong": [7400000, 1106], "Macau": [680000, 33], "Brunei": [450000, 5765],
+    "North Korea": [26000000, 120538], "Libya": [6800000, 1759540], "Mali": [21000000, 1240192],
+    "Burkina Faso": [22000000, 274200], "Niger": [25000000, 1267000], "Chad": [17000000, 1284000],
+    "Mauritania": [4700000, 1030700], "Somalia": [16000000, 637657], "Eritrea": [3600000, 117600],
+    "Rwanda": [13000000, 26338], "Zambia": [19000000, 752618], "Malawi": [20000000, 118484],
+    "Mozambique": [32000000, 801590], "Botswana": [2400000, 581730], "Namibia": [2500000, 825615],
+    "Benin": [13000000, 112622], "Togo": [8500000, 56785], "Sierra Leone": [8000000, 71740],
+    "Liberia": [5200000, 111369], "Gabon": [2300000, 267668], "Gambia": [2600000, 11295],
+    "Cape Verde": [560000, 4033], "Mauritius": [1300000, 2040], "Seychelles": [100000, 452],
+    "Honduras": [10000000, 112492], "Nicaragua": [6800000, 130373], "Belize": [400000, 22966],
+    "Guyana": [800000, 214969], "Suriname": [620000, 163820], "Barbados": [280000, 430],
+    "Bahamas": [400000, 13943], "Grenada": [113000, 344], "Saint Lucia": [180000, 616],
+    "Antigua and Barbuda": [93000, 442], "Dominica": [72000, 751], "Papua New Guinea": [10000000, 462840],
+    "Samoa": [200000, 2842], "Tonga": [105000, 747], "Vanuatu": [320000, 12189],
+    "Equatorial Guinea": [1500000, 28051], "Djibouti": [1100000, 23200], "Comoros": [840000, 2235],
+    "Guinea-Bissau": [2000000, 36125], "Guinea": [13000000, 245857], "Central African Republic": [5500000, 622984],
+    "Republic of the Congo": [5800000, 342000], "Burundi": [12500000, 27834], "South Sudan": [11000000, 619745],
+    "Lesotho": [2200000, 30355], "Eswatini": [1200000, 17364], "São Tomé and Príncipe": [220000, 964],
+    "Timor-Leste": [1300000, 14874], "Saint Kitts and Nevis": [48000, 261], "Saint Vincent and the Grenadines": [104000, 389],
+    "Kiribati": [120000, 811], "Nauru": [12000, 21], "Tuvalu": [11000, 26],
+    "Palau": [18000, 459], "Marshall Islands": [42000, 181], "Micronesia": [113000, 702],
+    "Solomon Islands": [700000, 28896],
+  };
+
+  // Precompute world rankings (1 = biggest) from the stats we have.
+  const AREA_RANK = {}, POP_RANK = {};
+  Object.keys(STATS).slice().sort((a, b) => STATS[b][1] - STATS[a][1]).forEach((n, i) => { AREA_RANK[n] = i + 1; });
+  Object.keys(STATS).slice().sort((a, b) => STATS[b][0] - STATS[a][0]).forEach((n, i) => { POP_RANK[n] = i + 1; });
+
+  function ordinal(n) {
+    const s = ["th", "st", "nd", "rd"], v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  }
+  function formatPop(n) {
+    if (n >= 1e9) return (n / 1e9).toFixed(2).replace(/\.?0+$/, "") + " billion";
+    if (n >= 1e6) { const m = n / 1e6; return (m >= 100 ? Math.round(m) : Math.round(m * 10) / 10) + " million"; }
+    if (n >= 1e3) return Math.round(n / 1e3) + ",000";
+    return String(n);
+  }
+  function formatArea(n) {
+    return n.toLocaleString("en-US");
+  }
+  // A short stats line: population (+rank) and area (+rank).
+  function statsHtml(info) {
+    const s = STATS[info.country];
+    if (!s) return "";
+    const [pop, area] = s;
+    return (
+      `<p class="country-stats">` +
+        `👥 ${formatPop(pop)} <span class="stat-rank">(${ordinal(POP_RANK[info.country])} most populous)</span>` +
+        ` &nbsp;·&nbsp; 🗺️ ${formatArea(area)} km² <span class="stat-rank">(${ordinal(AREA_RANK[info.country])} largest)</span>` +
+      `</p>`
+    );
+  }
+
   // Countries already shown this session, so the random picker never repeats one
   // until the user has seen them all.
   const seenCountries = new Set();
@@ -792,15 +915,11 @@
     return { country, justReset };
   }
 
-  async function discover() {
+  // Fetch dishes (if covered by TheMealDB), record the visit, and render it.
+  async function present(country, note) {
     startLoader();
     // Show the running-veggies animation for a full 2 seconds before results.
     const minShow = new Promise((r) => setTimeout(r, 2000));
-
-    const { country, justReset } = pickCountry();
-    const note = justReset
-      ? "🌍 You've explored every country — starting a fresh trip around the globe!"
-      : "";
 
     let dishes = [];
     // If TheMealDB covers this country, try it for real recipe photos/links.
@@ -819,10 +938,33 @@
     await minShow;
     stopLoader();
 
-    // Record this discovery and jump to it.
     history.push({ info: country, dishes });
     historyIndex = history.length - 1;
     showCurrent(note);
+    updateProgress();
+  }
+
+  // Random discovery (respects the no-repeat cycle).
+  async function discover() {
+    const { country, justReset } = pickCountry();
+    const note = justReset
+      ? "🌍 You've explored every country — starting a fresh trip around the globe!"
+      : "";
+    await present(country, note);
+  }
+
+  // Jump straight to a chosen country.
+  async function goToCountry(name) {
+    const country = COUNTRIES.find((c) => c.country === name);
+    if (!country) return;
+    seenCountries.add(country.country);
+    await present(country, "");
+  }
+
+  // "Explored N of 199 countries" running count.
+  function updateProgress() {
+    const el = document.getElementById("progress");
+    if (el) el.textContent = `🌍 Explored ${seenCountries.size} of ${COUNTRIES.length} countries`;
   }
 
   // Render whatever entry the history pointer is on. `note` is only passed on a
@@ -891,6 +1033,7 @@
           `<div class="country-center">` +
             `<div class="country-flag">${info.flag}</div>` +
             countryHeading(info) +
+            statsHtml(info) +
             `<p class="country-sub">${sub}</p>` +
           `</div>` +
           `<button type="button" class="nav-arrow nav-next" aria-label="Next country">›</button>` +
@@ -997,6 +1140,22 @@
     currentFilter = dietFilter.value;
     if (historyIndex >= 0) showCurrent();
   });
+
+  // Populate the country picker alphabetically; selecting one jumps to it.
+  const countryPicker = document.getElementById("countryPicker");
+  COUNTRIES.map((c) => c.country).sort((a, b) => a.localeCompare(b)).forEach((name) => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    countryPicker.appendChild(opt);
+  });
+  countryPicker.addEventListener("change", () => {
+    const name = countryPicker.value;
+    countryPicker.value = ""; // reset to placeholder
+    if (name) goToCountry(name);
+  });
+
+  updateProgress();
 })();
 </script>
 </body>
