@@ -9,9 +9,11 @@ you company during the search.
 
 ## Features
 
-- 🎲 **One-click discovery** — picks a random country every press.
-- 🍲 **Real recipes** — pulls the country's popular dishes (with photos and
-  full recipe links) from the free [TheMealDB](https://www.themealdb.com) API.
+- 🎲 **One-click discovery** — picks a random country every press, and never
+  repeats one until you've travelled through all of them.
+- 🌐 **54 countries, always with recipes** — a built-in list of iconic dishes
+  for every country guarantees options, with photo cards and full recipe links
+  pulled from the free [TheMealDB](https://www.themealdb.com) API where available.
 - 🌍 **Spinning-Earth loader** — a CSS-animated globe with carrots, broccoli,
   tomatoes, and corn orbiting across the top while results load.
 - 📱 **Responsive & self-contained** — a single `index.html`, no build step,

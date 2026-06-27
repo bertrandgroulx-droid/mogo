@@ -196,6 +196,13 @@
   }
   .country-name a .map-pin { font-size: 1.3rem; margin-left: 0.3rem; }
   .country-sub { color: var(--muted); margin: 0; }
+  .reset-note {
+    margin: 0 auto 0.9rem;
+    max-width: 520px;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
 
   .dish-grid {
     display: grid;
@@ -291,44 +298,81 @@
   <main id="results" class="results" aria-live="polite"></main>
 
   <footer>
-    Recipes from <a href="https://www.themealdb.com" target="_blank" rel="noopener">TheMealDB</a> · Made with 🥗 by Mogo
+    Recipes from <a href="https://www.themealdb.com" target="_blank" rel="noopener">TheMealDB</a> &amp; the web · Made with 🥗 by Mogo
   </footer>
 
 <script>
 (() => {
   "use strict";
 
-  // TheMealDB "areas" are nationalities. Map each to a friendly country name + flag.
-  const AREA_INFO = {
-    American:  { country: "United States", flag: "🇺🇸" },
-    British:   { country: "United Kingdom", flag: "🇬🇧" },
-    Canadian:  { country: "Canada", flag: "🇨🇦" },
-    Chinese:   { country: "China", flag: "🇨🇳" },
-    Croatian:  { country: "Croatia", flag: "🇭🇷" },
-    Dutch:     { country: "Netherlands", flag: "🇳🇱" },
-    Egyptian:  { country: "Egypt", flag: "🇪🇬" },
-    Filipino:  { country: "Philippines", flag: "🇵🇭" },
-    French:    { country: "France", flag: "🇫🇷" },
-    Greek:     { country: "Greece", flag: "🇬🇷" },
-    Indian:    { country: "India", flag: "🇮🇳" },
-    Irish:     { country: "Ireland", flag: "🇮🇪" },
-    Italian:   { country: "Italy", flag: "🇮🇹" },
-    Jamaican:  { country: "Jamaica", flag: "🇯🇲" },
-    Japanese:  { country: "Japan", flag: "🇯🇵" },
-    Kenyan:    { country: "Kenya", flag: "🇰🇪" },
-    Malaysian: { country: "Malaysia", flag: "🇲🇾" },
-    Mexican:   { country: "Mexico", flag: "🇲🇽" },
-    Moroccan:  { country: "Morocco", flag: "🇲🇦" },
-    Polish:    { country: "Poland", flag: "🇵🇱" },
-    Portuguese:{ country: "Portugal", flag: "🇵🇹" },
-    Russian:   { country: "Russia", flag: "🇷🇺" },
-    Spanish:   { country: "Spain", flag: "🇪🇸" },
-    Thai:      { country: "Thailand", flag: "🇹🇭" },
-    Tunisian:  { country: "Tunisia", flag: "🇹🇳" },
-    Turkish:   { country: "Turkey", flag: "🇹🇷" },
-    Ukrainian: { country: "Ukraine", flag: "🇺🇦" },
-    Vietnamese:{ country: "Vietnam", flag: "🇻🇳" },
-  };
+  // Curated country database. Each country has a flag, a few iconic dishes, and —
+  // where TheMealDB covers it — the matching "area" so we can pull real recipe
+  // photos. Countries without an `area` (or whose API call comes up empty) fall
+  // back to the curated dishes, each linking to a recipe search. This guarantees
+  // every country has recipe options, not just the ~29 TheMealDB cuisines.
+  const COUNTRIES = [
+    // --- Covered by TheMealDB (nice photo cards when available) ---
+    { country: "United States", flag: "🇺🇸", area: "American", dishes: ["Cheeseburger", "BBQ Ribs", "Mac and Cheese", "Buffalo Wings", "Apple Pie"] },
+    { country: "United Kingdom", flag: "🇬🇧", area: "British", dishes: ["Fish and Chips", "Sunday Roast", "Shepherd's Pie", "Full English Breakfast", "Sticky Toffee Pudding"] },
+    { country: "Canada", flag: "🇨🇦", area: "Canadian", dishes: ["Poutine", "Butter Tarts", "Tourtière", "Nanaimo Bars", "Montreal Smoked Meat"] },
+    { country: "China", flag: "🇨🇳", area: "Chinese", dishes: ["Peking Duck", "Kung Pao Chicken", "Dumplings", "Mapo Tofu", "Sweet and Sour Pork"] },
+    { country: "Croatia", flag: "🇭🇷", area: "Croatian", dishes: ["Black Risotto", "Peka", "Pašticada", "Štrukli", "Ćevapi"] },
+    { country: "Netherlands", flag: "🇳🇱", area: "Dutch", dishes: ["Stroopwafel", "Bitterballen", "Stamppot", "Poffertjes", "Erwtensoep"] },
+    { country: "Egypt", flag: "🇪🇬", area: "Egyptian", dishes: ["Koshari", "Ful Medames", "Molokhia", "Mahshi", "Ta'ameya"] },
+    { country: "Philippines", flag: "🇵🇭", area: "Filipino", dishes: ["Adobo", "Sinigang", "Lechon", "Pancit", "Lumpia"] },
+    { country: "France", flag: "🇫🇷", area: "French", dishes: ["Coq au Vin", "Beef Bourguignon", "Ratatouille", "Croissant", "Crème Brûlée"] },
+    { country: "Greece", flag: "🇬🇷", area: "Greek", dishes: ["Moussaka", "Souvlaki", "Gyros", "Greek Salad", "Baklava"] },
+    { country: "India", flag: "🇮🇳", area: "Indian", dishes: ["Butter Chicken", "Biryani", "Masala Dosa", "Chana Masala", "Samosa"] },
+    { country: "Ireland", flag: "🇮🇪", area: "Irish", dishes: ["Irish Stew", "Colcannon", "Soda Bread", "Boxty", "Coddle"] },
+    { country: "Italy", flag: "🇮🇹", area: "Italian", dishes: ["Pizza Margherita", "Spaghetti Carbonara", "Lasagna", "Risotto", "Tiramisu"] },
+    { country: "Jamaica", flag: "🇯🇲", area: "Jamaican", dishes: ["Jerk Chicken", "Ackee and Saltfish", "Curry Goat", "Rice and Peas", "Beef Patties"] },
+    { country: "Japan", flag: "🇯🇵", area: "Japanese", dishes: ["Sushi", "Ramen", "Tempura", "Tonkatsu", "Okonomiyaki"] },
+    { country: "Kenya", flag: "🇰🇪", area: "Kenyan", dishes: ["Nyama Choma", "Ugali", "Sukuma Wiki", "Pilau", "Githeri"] },
+    { country: "Malaysia", flag: "🇲🇾", area: "Malaysian", dishes: ["Nasi Lemak", "Char Kway Teow", "Laksa", "Satay", "Rendang"] },
+    { country: "Mexico", flag: "🇲🇽", area: "Mexican", dishes: ["Tacos", "Enchiladas", "Mole Poblano", "Guacamole", "Chiles Rellenos"] },
+    { country: "Morocco", flag: "🇲🇦", area: "Moroccan", dishes: ["Tagine", "Couscous", "Pastilla", "Harira", "Zaalouk"] },
+    { country: "Poland", flag: "🇵🇱", area: "Polish", dishes: ["Pierogi", "Bigos", "Żurek", "Gołąbki", "Kotlet Schabowy"] },
+    { country: "Portugal", flag: "🇵🇹", area: "Portuguese", dishes: ["Bacalhau à Brás", "Pastéis de Nata", "Caldo Verde", "Francesinha", "Cataplana"] },
+    { country: "Russia", flag: "🇷🇺", area: "Russian", dishes: ["Borscht", "Beef Stroganoff", "Pelmeni", "Blini", "Olivier Salad"] },
+    { country: "Spain", flag: "🇪🇸", area: "Spanish", dishes: ["Paella", "Tortilla Española", "Gazpacho", "Patatas Bravas", "Croquetas"] },
+    { country: "Thailand", flag: "🇹🇭", area: "Thai", dishes: ["Pad Thai", "Green Curry", "Tom Yum", "Som Tam", "Mango Sticky Rice"] },
+    { country: "Tunisia", flag: "🇹🇳", area: "Tunisian", dishes: ["Couscous", "Brik", "Shakshuka", "Lablabi", "Ojja"] },
+    { country: "Turkey", flag: "🇹🇷", area: "Turkish", dishes: ["Kebab", "Köfte", "Meze", "Baklava", "Menemen"] },
+    { country: "Ukraine", flag: "🇺🇦", area: "Ukrainian", dishes: ["Borscht", "Varenyky", "Holubtsi", "Salo", "Chicken Kyiv"] },
+    { country: "Vietnam", flag: "🇻🇳", area: "Vietnamese", dishes: ["Pho", "Banh Mi", "Spring Rolls", "Bun Cha", "Com Tam"] },
+
+    // --- Curated extras (recipe-search links for every dish) ---
+    { country: "South Korea", flag: "🇰🇷", dishes: ["Kimchi", "Bibimbap", "Bulgogi", "Tteokbokki", "Korean Fried Chicken"] },
+    { country: "Germany", flag: "🇩🇪", dishes: ["Schnitzel", "Bratwurst", "Sauerbraten", "Pretzel", "Black Forest Cake"] },
+    { country: "Brazil", flag: "🇧🇷", dishes: ["Feijoada", "Pão de Queijo", "Moqueca", "Coxinha", "Brigadeiro"] },
+    { country: "Argentina", flag: "🇦🇷", dishes: ["Asado", "Empanadas", "Milanesa", "Choripán", "Dulce de Leche"] },
+    { country: "Peru", flag: "🇵🇪", dishes: ["Ceviche", "Lomo Saltado", "Ají de Gallina", "Causa", "Anticuchos"] },
+    { country: "Lebanon", flag: "🇱🇧", dishes: ["Hummus", "Tabbouleh", "Kibbeh", "Manakish", "Fattoush"] },
+    { country: "Iran", flag: "🇮🇷", dishes: ["Chelo Kabab", "Ghormeh Sabzi", "Fesenjan", "Tahdig", "Ash Reshteh"] },
+    { country: "Indonesia", flag: "🇮🇩", dishes: ["Nasi Goreng", "Rendang", "Satay", "Gado-Gado", "Soto"] },
+    { country: "Ethiopia", flag: "🇪🇹", dishes: ["Injera", "Doro Wat", "Tibs", "Kitfo", "Shiro"] },
+    { country: "Nigeria", flag: "🇳🇬", dishes: ["Jollof Rice", "Egusi Soup", "Suya", "Pounded Yam", "Akara"] },
+    { country: "South Africa", flag: "🇿🇦", dishes: ["Bobotie", "Bunny Chow", "Boerewors", "Biltong", "Malva Pudding"] },
+    { country: "Sweden", flag: "🇸🇪", dishes: ["Swedish Meatballs", "Gravlax", "Janssons Frestelse", "Kanelbulle", "Raggmunk"] },
+    { country: "Switzerland", flag: "🇨🇭", dishes: ["Cheese Fondue", "Raclette", "Rösti", "Älplermagronen", "Zürcher Geschnetzeltes"] },
+    { country: "Austria", flag: "🇦🇹", dishes: ["Wiener Schnitzel", "Sachertorte", "Tafelspitz", "Apfelstrudel", "Kaiserschmarrn"] },
+    { country: "Hungary", flag: "🇭🇺", dishes: ["Goulash", "Chicken Paprikash", "Lángos", "Dobos Torte", "Halászlé"] },
+    { country: "Belgium", flag: "🇧🇪", dishes: ["Moules-Frites", "Belgian Waffles", "Carbonnade Flamande", "Stoofvlees", "Speculoos"] },
+    { country: "Cuba", flag: "🇨🇺", dishes: ["Ropa Vieja", "Moros y Cristianos", "Cuban Sandwich", "Picadillo", "Tostones"] },
+    { country: "Colombia", flag: "🇨🇴", dishes: ["Bandeja Paisa", "Arepas", "Ajiaco", "Sancocho", "Empanadas"] },
+    { country: "Australia", flag: "🇦🇺", dishes: ["Meat Pie", "Barramundi", "Lamingtons", "Pavlova", "Vegemite Toast"] },
+    { country: "Pakistan", flag: "🇵🇰", dishes: ["Biryani", "Nihari", "Haleem", "Seekh Kebab", "Chapli Kebab"] },
+    { country: "Sri Lanka", flag: "🇱🇰", dishes: ["Rice and Curry", "Hoppers", "Kottu", "Lamprais", "Pol Sambol"] },
+    { country: "Singapore", flag: "🇸🇬", dishes: ["Hainanese Chicken Rice", "Chilli Crab", "Laksa", "Char Kway Teow", "Satay"] },
+    { country: "Israel", flag: "🇮🇱", dishes: ["Falafel", "Hummus", "Shakshuka", "Sabich", "Shawarma"] },
+    { country: "Czech Republic", flag: "🇨🇿", dishes: ["Svíčková", "Goulash", "Trdelník", "Vepřo Knedlo Zelo", "Bramboráky"] },
+    { country: "Norway", flag: "🇳🇴", dishes: ["Fårikål", "Gravlaks", "Kjøttkaker", "Lapskaus", "Brunost"] },
+    { country: "Denmark", flag: "🇩🇰", dishes: ["Smørrebrød", "Frikadeller", "Æbleskiver", "Flæskesteg", "Wienerbrød"] },
+  ];
+
+  // Countries already shown this session, so the random picker never repeats one
+  // until the user has seen them all.
+  const seenCountries = new Set();
 
   const LOADER_MESSAGES = [
     "Spinning the globe…",
@@ -370,20 +414,25 @@
     return arr[Math.floor(Math.random() * arr.length)];
   }
 
-  // Fisher–Yates shuffle (returns a new array) so we can try countries in a random order.
-  function shuffle(arr) {
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  }
-
   async function getJSON(url) {
     const res = await fetch(url);
     if (!res.ok) throw new Error("Network error: " + res.status);
     return res.json();
+  }
+
+  // Pick a random country we haven't shown yet this session. Once every country
+  // has been seen, reset and start a fresh trip around the globe.
+  function pickCountry() {
+    let pool = COUNTRIES.filter((c) => !seenCountries.has(c.country));
+    let justReset = false;
+    if (!pool.length) {
+      seenCountries.clear();
+      pool = COUNTRIES.slice();
+      justReset = true;
+    }
+    const country = pickRandom(pool);
+    seenCountries.add(country.country);
+    return { country, justReset };
   }
 
   async function discover() {
@@ -391,56 +440,38 @@
     // A tiny artificial floor so the delightful loader is actually seen.
     const minShow = new Promise((r) => setTimeout(r, 1400));
 
-    try {
-      // 1. Get the list of available areas (countries) from TheMealDB.
-      const areaData = await getJSON("https://www.themealdb.com/api/json/v1/1/list.php?a=list");
-      const areas = (areaData.meals || [])
-        .map((m) => m.strArea)
-        .filter((a) => a && a !== "Unknown");
+    const { country, justReset } = pickCountry();
+    const note = justReset
+      ? "🌍 You've explored every country — starting a fresh trip around the globe!"
+      : "";
 
-      if (!areas.length) throw new Error("No countries returned.");
-
-      // 2. Try countries in random order until one returns dishes. This keeps us
-      //    from landing on an empty result and showing the user nothing.
-      const shuffled = shuffle(areas);
-      let chosen = shuffled[0];
-      let dishes = [];
-
-      for (let i = 0; i < Math.min(6, shuffled.length); i++) {
-        const area = shuffled[i];
-        try {
-          const dishData = await getJSON(
-            "https://www.themealdb.com/api/json/v1/1/filter.php?a=" + encodeURIComponent(area)
-          );
-          const found = dishData.meals || [];
-          if (found.length) {
-            chosen = area;
-            dishes = found.slice(0, 8);
-            break;
-          }
-        } catch (_) {
-          // This country's request failed — just try the next one.
-        }
+    let dishes = [];
+    // If TheMealDB covers this country, try it for real recipe photos/links.
+    if (country.area) {
+      try {
+        const dishData = await getJSON(
+          "https://www.themealdb.com/api/json/v1/1/filter.php?a=" + encodeURIComponent(country.area)
+        );
+        dishes = (dishData.meals || []).slice(0, 8);
+      } catch (_) {
+        // API unavailable — we'll fall back to the curated dishes below.
       }
+    }
 
-      await minShow;
-      stopLoader();
+    await minShow;
+    stopLoader();
 
-      if (dishes.length) {
-        renderResults(chosen, dishes);
-      } else {
-        // The recipe API gave us no dishes — still hand the user real recipe links.
-        renderFallback(chosen);
-      }
-    } catch (err) {
-      await minShow;
-      stopLoader();
-      renderError(err);
+    if (dishes.length) {
+      renderResults(country, dishes, note);
+    } else {
+      // No API photos — show curated dishes, each linking to a recipe search.
+      renderDishLinks(country, note);
     }
   }
 
-  function countryInfo(area) {
-    return AREA_INFO[area] || { country: area, flag: "🍴" };
+  // Optional reset note shown above the country banner.
+  function noteHtml(note) {
+    return note ? `<p class="reset-note">${escapeHtml(note)}</p>` : "";
   }
 
   // Country heading that links to the country on Google Maps.
@@ -456,9 +487,8 @@
     );
   }
 
-  function renderResults(area, dishes) {
-    const info = countryInfo(area);
-
+  // TheMealDB photo cards linking to full recipes.
+  function renderResults(info, dishes, note) {
     const cards = dishes.map((d) => {
       const recipeUrl = "https://www.themealdb.com/meal/" + encodeURIComponent(d.idMeal);
       return (
@@ -474,6 +504,7 @@
 
     results.innerHTML =
       `<div class="country-banner">` +
+        noteHtml(note) +
         `<div class="country-flag">${info.flag}</div>` +
         countryHeading(info) +
         `<p class="country-sub">Most popular dishes — click any to see the full recipe</p>` +
@@ -481,29 +512,27 @@
       `<div class="dish-grid">${cards}</div>`;
   }
 
-  // Shown when the recipe API returns a country but no dishes: we still give the
-  // user real, working links to recipes for that country's popular dishes.
-  function renderFallback(area) {
-    const info = countryInfo(area);
-    const q = encodeURIComponent(info.country + " popular traditional dishes recipes");
-    const links = [
-      { label: "🔎 Search recipes on Google", url: "https://www.google.com/search?q=" + q },
-      { label: "🥘 Browse on Allrecipes", url: "https://www.allrecipes.com/search?q=" + encodeURIComponent(info.country + " recipes") },
-      { label: "🍲 Explore TheMealDB", url: "https://www.themealdb.com" },
-    ];
-
-    const cards = links.map((l) =>
-      `<a class="dish-card fallback-card" href="${l.url}" target="_blank" rel="noopener">` +
-        `<div class="dish-body"><div class="dish-name">${l.label}</div>` +
-        `<div class="dish-link">Open →</div></div>` +
-      `</a>`
-    ).join("");
+  // Curated dish cards, each linking to a recipe search for that dish.
+  function renderDishLinks(info, note) {
+    const cards = info.dishes.map((dish) => {
+      const url = "https://www.google.com/search?q=" +
+        encodeURIComponent(dish + " " + info.country + " recipe");
+      return (
+        `<a class="dish-card fallback-card" href="${url}" target="_blank" rel="noopener">` +
+          `<div class="dish-body">` +
+            `<div class="dish-name">${escapeHtml(dish)}</div>` +
+            `<div class="dish-link">Find recipe →</div>` +
+          `</div>` +
+        `</a>`
+      );
+    }).join("");
 
     results.innerHTML =
       `<div class="country-banner">` +
+        noteHtml(note) +
         `<div class="country-flag">${info.flag}</div>` +
         countryHeading(info) +
-        `<p class="country-sub">Here are recipes for ${info.country}'s most popular dishes</p>` +
+        `<p class="country-sub">Most popular dishes — tap any to find the recipe</p>` +
       `</div>` +
       `<div class="dish-grid">${cards}</div>`;
   }
