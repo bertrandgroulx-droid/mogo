@@ -16,7 +16,7 @@ you company during the search.
 - 🥦 **Diet badges & filter** — each dish is tagged V (vegetarian) and/or GF
   (usually gluten-free), and a dropdown filters by Vegetarian, Fish, Chicken,
   Beef, Pork, or Other. (Diet tags are a general guide — always check the recipe.)
-- 🌐 **116 countries, always with recipes** — a built-in list of iconic dishes
+- 🌐 **177 countries, always with recipes** — a built-in list of iconic dishes
   for every country guarantees options, with photo cards and full recipe links
   pulled from the free [TheMealDB](https://www.themealdb.com) API where available.
 - 🌍 **Spinning-Earth loader** — a CSS-animated globe with carrots, broccoli,
