@@ -91,6 +91,27 @@
   .discover-btn:active { transform: translateY(0); }
   .discover-btn:disabled { cursor: not-allowed; opacity: 0.55; transform: none; box-shadow: none; }
 
+  /* ---------- Filter ---------- */
+  .controls {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+  .controls select {
+    font: inherit;
+    color: var(--text);
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 999px;
+    padding: 0.4rem 0.9rem;
+    cursor: pointer;
+  }
+  .controls select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .controls option { color: #1a1a1a; }
+
   /* ---------- Spinning Earth + vegetables loader ---------- */
   .loader {
     margin: 2.5rem 0 1rem;
@@ -281,6 +302,7 @@
     gap: 1rem;
   }
   .dish-card {
+    position: relative;
     display: block;
     text-decoration: none;
     color: inherit;
@@ -290,6 +312,26 @@
     overflow: hidden;
     transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
   }
+  /* Vegetarian / gluten-free badges in the card's top-right corner. */
+  .dish-badges {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 4px;
+    z-index: 1;
+  }
+  .badge {
+    font-size: 0.62rem;
+    font-weight: 800;
+    line-height: 1;
+    padding: 3px 5px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+  .badge-v { background: #3ea34b; color: #fff; }
+  .badge-gf { background: #ffd24a; color: #1a1a1a; }
   .dish-card:hover {
     transform: translateY(-4px);
     border-color: var(--accent);
@@ -351,6 +393,18 @@
 
   <button id="discoverBtn" class="discover-btn">🍽️ Surprise me with a country!</button>
 
+  <div class="controls">
+    <label for="dietFilter">Filter:</label>
+    <select id="dietFilter" aria-label="Filter dishes by type">
+      <option value="all">Show all</option>
+      <option value="v">Vegetarian</option>
+      <option value="fish">Fish</option>
+      <option value="chicken">Chicken</option>
+      <option value="beef">Beef</option>
+      <option value="other">Other</option>
+    </select>
+  </div>
+
   <!-- Spinning Earth with vegetables running on top -->
   <div id="loader" class="loader" aria-hidden="true">
     <div class="earth-scene">
@@ -368,6 +422,7 @@
   <main id="results" class="results" aria-live="polite"></main>
 
   <footer>
+    <span class="badge badge-v">V</span> vegetarian · <span class="badge badge-gf">GF</span> usually gluten-free — a general guide, always check the recipe.<br />
     Recipes from <a href="https://www.themealdb.com" target="_blank" rel="noopener">TheMealDB</a> &amp; the web · Made with 🥗 by Mogo
   </footer>
 
@@ -382,62 +437,63 @@
   // every country has recipe options, not just the ~29 TheMealDB cuisines.
   const COUNTRIES = [
     // --- Covered by TheMealDB (nice photo cards when available) ---
-    { country: "United States", flag: "🇺🇸", area: "American", dishes: [["Cheeseburger", "beef patty in a bun"], ["BBQ Ribs", "smoky grilled pork ribs"], ["Mac and Cheese", "cheesy baked pasta"], ["Buffalo Wings", "spicy fried chicken wings"], ["Apple Pie", "baked apple dessert"]] },
-    { country: "United Kingdom", flag: "🇬🇧", area: "British", dishes: [["Fish and Chips", "fried fish with chips"], ["Sunday Roast", "roast meat & vegetables"], ["Shepherd's Pie", "mince & mashed-potato bake"], ["Full English Breakfast", "big fried breakfast"], ["Sticky Toffee Pudding", "warm toffee sponge cake"]] },
-    { country: "Canada", flag: "🇨🇦", area: "Canadian", dishes: [["Poutine", "fries, gravy & cheese curds"], ["Butter Tarts", "sweet gooey pastry tarts"], ["Tourtière", "savory meat pie"], ["Nanaimo Bars", "no-bake chocolate bars"], ["Montreal Smoked Meat", "cured deli-beef sandwich"]] },
-    { country: "China", flag: "🇨🇳", area: "Chinese", dishes: [["Peking Duck", "crispy roast duck"], ["Kung Pao Chicken", "spicy stir-fried chicken"], ["Dumplings", "stuffed dough parcels"], ["Mapo Tofu", "spicy tofu in chili sauce"], ["Sweet and Sour Pork", "fried pork in tangy sauce"]] },
-    { country: "Croatia", flag: "🇭🇷", area: "Croatian", dishes: [["Black Risotto", "squid-ink rice dish"], ["Peka", "slow-roasted meat & veg"], ["Pašticada", "braised beef stew"], ["Štrukli", "baked cheese pastry"], ["Ćevapi", "grilled minced-meat sausages"]] },
-    { country: "Netherlands", flag: "🇳🇱", area: "Dutch", dishes: [["Stroopwafel", "syrup-filled waffle cookie"], ["Bitterballen", "fried meat croquettes"], ["Stamppot", "mashed potato & veg"], ["Poffertjes", "mini fluffy pancakes"], ["Erwtensoep", "thick split-pea soup"]] },
-    { country: "Egypt", flag: "🇪🇬", area: "Egyptian", dishes: [["Koshari", "rice, pasta & lentils"], ["Ful Medames", "stewed fava beans"], ["Molokhia", "leafy green stew"], ["Mahshi", "stuffed vegetables"], ["Ta'ameya", "fava-bean falafel"]] },
-    { country: "Philippines", flag: "🇵🇭", area: "Filipino", dishes: [["Adobo", "soy-vinegar braised meat"], ["Sinigang", "sour tamarind soup"], ["Lechon", "whole roast pig"], ["Pancit", "stir-fried noodles"], ["Lumpia", "Filipino spring rolls"]] },
-    { country: "France", flag: "🇫🇷", area: "French", dishes: [["Coq au Vin", "chicken braised in wine"], ["Beef Bourguignon", "red-wine beef stew"], ["Ratatouille", "stewed summer vegetables"], ["Croissant", "buttery flaky pastry"], ["Crème Brûlée", "custard with caramel top"]] },
-    { country: "Greece", flag: "🇬🇷", area: "Greek", dishes: [["Moussaka", "baked eggplant & meat"], ["Souvlaki", "grilled meat skewers"], ["Gyros", "wrapped rotisserie meat"], ["Greek Salad", "tomato, feta & olive salad"], ["Baklava", "nutty honey pastry"]] },
-    { country: "India", flag: "🇮🇳", area: "Indian", dishes: [["Butter Chicken", "creamy tomato curry"], ["Biryani", "spiced layered rice"], ["Masala Dosa", "stuffed rice crepe"], ["Chana Masala", "spiced chickpea curry"], ["Samosa", "fried savory pastry"]] },
-    { country: "Ireland", flag: "🇮🇪", area: "Irish", dishes: [["Irish Stew", "lamb & potato stew"], ["Colcannon", "mashed potato & cabbage"], ["Soda Bread", "quick rustic bread"], ["Boxty", "potato pancake"], ["Coddle", "sausage & potato stew"]] },
-    { country: "Italy", flag: "🇮🇹", area: "Italian", dishes: [["Pizza Margherita", "tomato & mozzarella flatbread"], ["Spaghetti Carbonara", "egg, cheese & pork pasta"], ["Lasagna", "layered baked pasta"], ["Risotto", "creamy cooked rice"], ["Tiramisu", "coffee mascarpone dessert"]] },
-    { country: "Jamaica", flag: "🇯🇲", area: "Jamaican", dishes: [["Jerk Chicken", "spicy grilled chicken"], ["Ackee and Saltfish", "fruit & salted cod"], ["Curry Goat", "spiced goat curry"], ["Rice and Peas", "rice with kidney beans"], ["Beef Patties", "spiced meat pastries"]] },
-    { country: "Japan", flag: "🇯🇵", area: "Japanese", dishes: [["Sushi", "vinegared rice & fish"], ["Ramen", "noodle soup bowl"], ["Tempura", "battered fried seafood & veg"], ["Tonkatsu", "breaded pork cutlet"], ["Okonomiyaki", "savory cabbage pancake"]] },
-    { country: "Kenya", flag: "🇰🇪", area: "Kenyan", dishes: [["Nyama Choma", "grilled roast meat"], ["Ugali", "maize-flour staple"], ["Sukuma Wiki", "sautéed collard greens"], ["Pilau", "spiced rice"], ["Githeri", "beans & maize stew"]] },
-    { country: "Malaysia", flag: "🇲🇾", area: "Malaysian", dishes: [["Nasi Lemak", "coconut rice plate"], ["Char Kway Teow", "stir-fried flat noodles"], ["Laksa", "spicy noodle soup"], ["Satay", "grilled meat skewers"], ["Rendang", "slow-cooked dry curry"]] },
-    { country: "Mexico", flag: "🇲🇽", area: "Mexican", dishes: [["Tacos", "filled folded tortillas"], ["Enchiladas", "rolled saucy tortillas"], ["Mole Poblano", "chili-chocolate sauce"], ["Guacamole", "avocado dip"], ["Chiles Rellenos", "stuffed fried peppers"]] },
-    { country: "Morocco", flag: "🇲🇦", area: "Moroccan", dishes: [["Tagine", "slow-cooked stew"], ["Couscous", "steamed semolina grains"], ["Pastilla", "sweet-savory meat pie"], ["Harira", "tomato-lentil soup"], ["Zaalouk", "eggplant & tomato dip"]] },
-    { country: "Poland", flag: "🇵🇱", area: "Polish", dishes: [["Pierogi", "stuffed dumplings"], ["Bigos", "meat & cabbage stew"], ["Żurek", "sour rye soup"], ["Gołąbki", "stuffed cabbage rolls"], ["Kotlet Schabowy", "breaded pork cutlet"]] },
-    { country: "Portugal", flag: "🇵🇹", area: "Portuguese", dishes: [["Bacalhau à Brás", "shredded cod & potato"], ["Pastéis de Nata", "custard tarts"], ["Caldo Verde", "kale & potato soup"], ["Francesinha", "stacked meat sandwich"], ["Cataplana", "seafood stew"]] },
-    { country: "Russia", flag: "🇷🇺", area: "Russian", dishes: [["Borscht", "beet soup"], ["Beef Stroganoff", "creamy beef & mushrooms"], ["Pelmeni", "meat dumplings"], ["Blini", "thin pancakes"], ["Olivier Salad", "potato & veg salad"]] },
-    { country: "Spain", flag: "🇪🇸", area: "Spanish", dishes: [["Paella", "saffron rice with seafood"], ["Tortilla Española", "potato omelette"], ["Gazpacho", "cold tomato soup"], ["Patatas Bravas", "fried potatoes & spicy sauce"], ["Croquetas", "creamy fried croquettes"]] },
-    { country: "Thailand", flag: "🇹🇭", area: "Thai", dishes: [["Pad Thai", "stir-fried rice noodles"], ["Green Curry", "coconut chili curry"], ["Tom Yum", "hot & sour soup"], ["Som Tam", "spicy papaya salad"], ["Mango Sticky Rice", "sweet rice & mango"]] },
-    { country: "Tunisia", flag: "🇹🇳", area: "Tunisian", dishes: [["Couscous", "steamed semolina with stew"], ["Brik", "fried egg pastry"], ["Shakshuka", "eggs in tomato sauce"], ["Lablabi", "chickpea soup"], ["Ojja", "spicy tomato & egg dish"]] },
-    { country: "Turkey", flag: "🇹🇷", area: "Turkish", dishes: [["Kebab", "grilled spiced meat"], ["Köfte", "seasoned meatballs"], ["Meze", "small shared appetizers"], ["Baklava", "nutty syrup pastry"], ["Menemen", "scrambled eggs & veg"]] },
-    { country: "Ukraine", flag: "🇺🇦", area: "Ukrainian", dishes: [["Borscht", "beet & cabbage soup"], ["Varenyky", "stuffed dumplings"], ["Holubtsi", "stuffed cabbage rolls"], ["Salo", "cured pork fat"], ["Chicken Kyiv", "butter-stuffed chicken"]] },
-    { country: "Vietnam", flag: "🇻🇳", area: "Vietnamese", dishes: [["Pho", "noodle soup"], ["Banh Mi", "filled baguette sandwich"], ["Spring Rolls", "fresh rice-paper rolls"], ["Bun Cha", "grilled pork & noodles"], ["Com Tam", "broken-rice plate"]] },
+    // dishes: [name, description, type, glutenFree]  type: v|fish|chicken|beef|other
+    { country: "United States", flag: "🇺🇸", area: "American", dishes: [["Cheeseburger", "beef patty in a bun", "beef", 0], ["BBQ Ribs", "smoky grilled pork ribs", "other", 1], ["Mac and Cheese", "cheesy baked pasta", "v", 0], ["Buffalo Wings", "spicy fried chicken wings", "chicken", 1], ["Apple Pie", "baked apple dessert", "v", 0]] },
+    { country: "United Kingdom", flag: "🇬🇧", area: "British", dishes: [["Fish and Chips", "fried fish with chips", "fish", 0], ["Sunday Roast", "roast meat & vegetables", "beef", 0], ["Shepherd's Pie", "mince & mashed-potato bake", "other", 1], ["Full English Breakfast", "big fried breakfast", "other", 0], ["Sticky Toffee Pudding", "warm toffee sponge cake", "v", 0]] },
+    { country: "Canada", flag: "🇨🇦", area: "Canadian", dishes: [["Poutine", "fries, gravy & cheese curds", "v", 0], ["Butter Tarts", "sweet gooey pastry tarts", "v", 0], ["Tourtière", "savory meat pie", "other", 0], ["Nanaimo Bars", "no-bake chocolate bars", "v", 0], ["Montreal Smoked Meat", "cured deli-beef sandwich", "beef", 0]] },
+    { country: "China", flag: "🇨🇳", area: "Chinese", dishes: [["Peking Duck", "crispy roast duck", "other", 0], ["Kung Pao Chicken", "spicy stir-fried chicken", "chicken", 0], ["Dumplings", "stuffed dough parcels", "other", 0], ["Mapo Tofu", "spicy tofu in chili sauce", "v", 0], ["Sweet and Sour Pork", "fried pork in tangy sauce", "other", 0]] },
+    { country: "Croatia", flag: "🇭🇷", area: "Croatian", dishes: [["Black Risotto", "squid-ink rice dish", "fish", 1], ["Peka", "slow-roasted meat & veg", "other", 1], ["Pašticada", "braised beef stew", "beef", 1], ["Štrukli", "baked cheese pastry", "v", 0], ["Ćevapi", "grilled minced-meat sausages", "other", 0]] },
+    { country: "Netherlands", flag: "🇳🇱", area: "Dutch", dishes: [["Stroopwafel", "syrup-filled waffle cookie", "v", 0], ["Bitterballen", "fried meat croquettes", "other", 0], ["Stamppot", "mashed potato & veg", "v", 1], ["Poffertjes", "mini fluffy pancakes", "v", 0], ["Erwtensoep", "thick split-pea soup", "other", 1]] },
+    { country: "Egypt", flag: "🇪🇬", area: "Egyptian", dishes: [["Koshari", "rice, pasta & lentils", "v", 0], ["Ful Medames", "stewed fava beans", "v", 1], ["Molokhia", "leafy green stew", "v", 1], ["Mahshi", "stuffed vegetables", "v", 1], ["Ta'ameya", "fava-bean falafel", "v", 1]] },
+    { country: "Philippines", flag: "🇵🇭", area: "Filipino", dishes: [["Adobo", "soy-vinegar braised meat", "other", 0], ["Sinigang", "sour tamarind soup", "other", 1], ["Lechon", "whole roast pig", "other", 1], ["Pancit", "stir-fried noodles", "other", 0], ["Lumpia", "Filipino spring rolls", "other", 0]] },
+    { country: "France", flag: "🇫🇷", area: "French", dishes: [["Coq au Vin", "chicken braised in wine", "chicken", 1], ["Beef Bourguignon", "red-wine beef stew", "beef", 1], ["Ratatouille", "stewed summer vegetables", "v", 1], ["Croissant", "buttery flaky pastry", "v", 0], ["Crème Brûlée", "custard with caramel top", "v", 1]] },
+    { country: "Greece", flag: "🇬🇷", area: "Greek", dishes: [["Moussaka", "baked eggplant & meat", "other", 0], ["Souvlaki", "grilled meat skewers", "other", 1], ["Gyros", "wrapped rotisserie meat", "other", 0], ["Greek Salad", "tomato, feta & olive salad", "v", 1], ["Baklava", "nutty honey pastry", "v", 0]] },
+    { country: "India", flag: "🇮🇳", area: "Indian", dishes: [["Butter Chicken", "creamy tomato curry", "chicken", 1], ["Biryani", "spiced layered rice", "chicken", 1], ["Masala Dosa", "stuffed rice crepe", "v", 1], ["Chana Masala", "spiced chickpea curry", "v", 1], ["Samosa", "fried savory pastry", "v", 0]] },
+    { country: "Ireland", flag: "🇮🇪", area: "Irish", dishes: [["Irish Stew", "lamb & potato stew", "other", 1], ["Colcannon", "mashed potato & cabbage", "v", 1], ["Soda Bread", "quick rustic bread", "v", 0], ["Boxty", "potato pancake", "v", 0], ["Coddle", "sausage & potato stew", "other", 0]] },
+    { country: "Italy", flag: "🇮🇹", area: "Italian", dishes: [["Pizza Margherita", "tomato & mozzarella flatbread", "v", 0], ["Spaghetti Carbonara", "egg, cheese & pork pasta", "other", 0], ["Lasagna", "layered baked pasta", "beef", 0], ["Risotto", "creamy cooked rice", "v", 1], ["Tiramisu", "coffee mascarpone dessert", "v", 0]] },
+    { country: "Jamaica", flag: "🇯🇲", area: "Jamaican", dishes: [["Jerk Chicken", "spicy grilled chicken", "chicken", 1], ["Ackee and Saltfish", "fruit & salted cod", "fish", 1], ["Curry Goat", "spiced goat curry", "other", 1], ["Rice and Peas", "rice with kidney beans", "v", 1], ["Beef Patties", "spiced meat pastries", "beef", 0]] },
+    { country: "Japan", flag: "🇯🇵", area: "Japanese", dishes: [["Sushi", "vinegared rice & fish", "fish", 1], ["Ramen", "noodle soup bowl", "other", 0], ["Tempura", "battered fried seafood & veg", "fish", 0], ["Tonkatsu", "breaded pork cutlet", "other", 0], ["Okonomiyaki", "savory cabbage pancake", "other", 0]] },
+    { country: "Kenya", flag: "🇰🇪", area: "Kenyan", dishes: [["Nyama Choma", "grilled roast meat", "other", 1], ["Ugali", "maize-flour staple", "v", 1], ["Sukuma Wiki", "sautéed collard greens", "v", 1], ["Pilau", "spiced rice", "other", 1], ["Githeri", "beans & maize stew", "v", 1]] },
+    { country: "Malaysia", flag: "🇲🇾", area: "Malaysian", dishes: [["Nasi Lemak", "coconut rice plate", "v", 1], ["Char Kway Teow", "stir-fried flat noodles", "fish", 0], ["Laksa", "spicy noodle soup", "fish", 0], ["Satay", "grilled meat skewers", "other", 0], ["Rendang", "slow-cooked dry curry", "beef", 1]] },
+    { country: "Mexico", flag: "🇲🇽", area: "Mexican", dishes: [["Tacos", "filled folded tortillas", "other", 1], ["Enchiladas", "rolled saucy tortillas", "other", 1], ["Mole Poblano", "chili-chocolate sauce", "chicken", 0], ["Guacamole", "avocado dip", "v", 1], ["Chiles Rellenos", "stuffed fried peppers", "v", 0]] },
+    { country: "Morocco", flag: "🇲🇦", area: "Moroccan", dishes: [["Tagine", "slow-cooked stew", "other", 1], ["Couscous", "steamed semolina grains", "other", 0], ["Pastilla", "sweet-savory meat pie", "other", 0], ["Harira", "tomato-lentil soup", "v", 0], ["Zaalouk", "eggplant & tomato dip", "v", 1]] },
+    { country: "Poland", flag: "🇵🇱", area: "Polish", dishes: [["Pierogi", "stuffed dumplings", "v", 0], ["Bigos", "meat & cabbage stew", "other", 1], ["Żurek", "sour rye soup", "other", 0], ["Gołąbki", "stuffed cabbage rolls", "other", 1], ["Kotlet Schabowy", "breaded pork cutlet", "other", 0]] },
+    { country: "Portugal", flag: "🇵🇹", area: "Portuguese", dishes: [["Bacalhau à Brás", "shredded cod & potato", "fish", 1], ["Pastéis de Nata", "custard tarts", "v", 0], ["Caldo Verde", "kale & potato soup", "v", 1], ["Francesinha", "stacked meat sandwich", "other", 0], ["Cataplana", "seafood stew", "fish", 1]] },
+    { country: "Russia", flag: "🇷🇺", area: "Russian", dishes: [["Borscht", "beet soup", "v", 1], ["Beef Stroganoff", "creamy beef & mushrooms", "beef", 0], ["Pelmeni", "meat dumplings", "other", 0], ["Blini", "thin pancakes", "v", 0], ["Olivier Salad", "potato & veg salad", "other", 1]] },
+    { country: "Spain", flag: "🇪🇸", area: "Spanish", dishes: [["Paella", "saffron rice with seafood", "fish", 1], ["Tortilla Española", "potato omelette", "v", 1], ["Gazpacho", "cold tomato soup", "v", 0], ["Patatas Bravas", "fried potatoes & spicy sauce", "v", 1], ["Croquetas", "creamy fried croquettes", "other", 0]] },
+    { country: "Thailand", flag: "🇹🇭", area: "Thai", dishes: [["Pad Thai", "stir-fried rice noodles", "other", 0], ["Green Curry", "coconut chili curry", "chicken", 1], ["Tom Yum", "hot & sour soup", "fish", 1], ["Som Tam", "spicy papaya salad", "v", 1], ["Mango Sticky Rice", "sweet rice & mango", "v", 1]] },
+    { country: "Tunisia", flag: "🇹🇳", area: "Tunisian", dishes: [["Couscous", "steamed semolina with stew", "other", 0], ["Brik", "fried egg pastry", "fish", 0], ["Shakshuka", "eggs in tomato sauce", "v", 1], ["Lablabi", "chickpea soup", "v", 0], ["Ojja", "spicy tomato & egg dish", "v", 1]] },
+    { country: "Turkey", flag: "🇹🇷", area: "Turkish", dishes: [["Kebab", "grilled spiced meat", "other", 1], ["Köfte", "seasoned meatballs", "other", 0], ["Meze", "small shared appetizers", "v", 1], ["Baklava", "nutty syrup pastry", "v", 0], ["Menemen", "scrambled eggs & veg", "v", 1]] },
+    { country: "Ukraine", flag: "🇺🇦", area: "Ukrainian", dishes: [["Borscht", "beet & cabbage soup", "v", 1], ["Varenyky", "stuffed dumplings", "v", 0], ["Holubtsi", "stuffed cabbage rolls", "other", 1], ["Salo", "cured pork fat", "other", 1], ["Chicken Kyiv", "butter-stuffed chicken", "chicken", 0]] },
+    { country: "Vietnam", flag: "🇻🇳", area: "Vietnamese", dishes: [["Pho", "noodle soup", "beef", 1], ["Banh Mi", "filled baguette sandwich", "other", 0], ["Spring Rolls", "fresh rice-paper rolls", "fish", 1], ["Bun Cha", "grilled pork & noodles", "other", 1], ["Com Tam", "broken-rice plate", "other", 1]] },
 
     // --- Curated extras (recipe-search links for every dish) ---
-    { country: "South Korea", flag: "🇰🇷", dishes: [["Kimchi", "fermented spicy cabbage"], ["Bibimbap", "rice, veg & egg bowl"], ["Bulgogi", "marinated grilled beef"], ["Tteokbokki", "spicy rice cakes"], ["Korean Fried Chicken", "crispy glazed chicken"]] },
-    { country: "Germany", flag: "🇩🇪", dishes: [["Schnitzel", "breaded fried cutlet"], ["Bratwurst", "grilled sausage"], ["Sauerbraten", "marinated pot roast"], ["Pretzel", "twisted baked bread"], ["Black Forest Cake", "cherry chocolate cake"]] },
-    { country: "Brazil", flag: "🇧🇷", dishes: [["Feijoada", "black bean & pork stew"], ["Pão de Queijo", "cheese bread balls"], ["Moqueca", "coconut fish stew"], ["Coxinha", "fried chicken croquettes"], ["Brigadeiro", "chocolate fudge balls"]] },
-    { country: "Argentina", flag: "🇦🇷", dishes: [["Asado", "grilled barbecue meats"], ["Empanadas", "stuffed pastry pockets"], ["Milanesa", "breaded meat cutlet"], ["Choripán", "sausage sandwich"], ["Dulce de Leche", "sweet caramel spread"]] },
-    { country: "Peru", flag: "🇵🇪", dishes: [["Ceviche", "citrus-cured raw fish"], ["Lomo Saltado", "stir-fried beef & fries"], ["Ají de Gallina", "creamy chili chicken"], ["Causa", "layered potato dish"], ["Anticuchos", "grilled beef-heart skewers"]] },
-    { country: "Lebanon", flag: "🇱🇧", dishes: [["Hummus", "chickpea dip"], ["Tabbouleh", "parsley & bulgur salad"], ["Kibbeh", "stuffed bulgur croquettes"], ["Manakish", "topped flatbread"], ["Fattoush", "bread & vegetable salad"]] },
-    { country: "Iran", flag: "🇮🇷", dishes: [["Chelo Kabab", "grilled kebab with rice"], ["Ghormeh Sabzi", "herb & bean stew"], ["Fesenjan", "walnut-pomegranate stew"], ["Tahdig", "crispy rice"], ["Ash Reshteh", "noodle & bean soup"]] },
-    { country: "Indonesia", flag: "🇮🇩", dishes: [["Nasi Goreng", "fried rice"], ["Rendang", "slow-cooked beef curry"], ["Satay", "skewers with peanut sauce"], ["Gado-Gado", "veg & peanut salad"], ["Soto", "spiced soup"]] },
-    { country: "Ethiopia", flag: "🇪🇹", dishes: [["Injera", "spongy sourdough flatbread"], ["Doro Wat", "spicy chicken stew"], ["Tibs", "sautéed meat & veg"], ["Kitfo", "minced raw beef"], ["Shiro", "spiced chickpea stew"]] },
-    { country: "Nigeria", flag: "🇳🇬", dishes: [["Jollof Rice", "spiced tomato rice"], ["Egusi Soup", "melon-seed stew"], ["Suya", "spicy grilled skewers"], ["Pounded Yam", "smooth yam staple"], ["Akara", "fried bean fritters"]] },
-    { country: "South Africa", flag: "🇿🇦", dishes: [["Bobotie", "spiced baked mince"], ["Bunny Chow", "curry in a bread loaf"], ["Boerewors", "coiled grilled sausage"], ["Biltong", "cured dried meat"], ["Malva Pudding", "sweet sponge dessert"]] },
-    { country: "Sweden", flag: "🇸🇪", dishes: [["Swedish Meatballs", "meatballs in gravy"], ["Gravlax", "cured salmon"], ["Janssons Frestelse", "creamy potato bake"], ["Kanelbulle", "cinnamon bun"], ["Raggmunk", "potato pancakes"]] },
-    { country: "Switzerland", flag: "🇨🇭", dishes: [["Cheese Fondue", "melted cheese dip"], ["Raclette", "melted cheese & potatoes"], ["Rösti", "crispy potato cake"], ["Älplermagronen", "alpine pasta bake"], ["Zürcher Geschnetzeltes", "creamy veal strips"]] },
-    { country: "Austria", flag: "🇦🇹", dishes: [["Wiener Schnitzel", "breaded veal cutlet"], ["Sachertorte", "chocolate cake"], ["Tafelspitz", "boiled beef dish"], ["Apfelstrudel", "apple pastry"], ["Kaiserschmarrn", "shredded sweet pancake"]] },
-    { country: "Hungary", flag: "🇭🇺", dishes: [["Goulash", "paprika beef stew"], ["Chicken Paprikash", "creamy paprika chicken"], ["Lángos", "fried flatbread"], ["Dobos Torte", "layered sponge cake"], ["Halászlé", "spicy fish soup"]] },
-    { country: "Belgium", flag: "🇧🇪", dishes: [["Moules-Frites", "mussels with fries"], ["Belgian Waffles", "fluffy waffles"], ["Carbonnade Flamande", "beer beef stew"], ["Stoofvlees", "braised beef stew"], ["Speculoos", "spiced biscuit"]] },
-    { country: "Cuba", flag: "🇨🇺", dishes: [["Ropa Vieja", "shredded beef stew"], ["Moros y Cristianos", "rice & black beans"], ["Cuban Sandwich", "pressed ham & pork sandwich"], ["Picadillo", "seasoned ground beef"], ["Tostones", "fried plantains"]] },
-    { country: "Colombia", flag: "🇨🇴", dishes: [["Bandeja Paisa", "loaded meat platter"], ["Arepas", "grilled corn cakes"], ["Ajiaco", "chicken & potato soup"], ["Sancocho", "hearty meat soup"], ["Empanadas", "fried stuffed pastries"]] },
-    { country: "Australia", flag: "🇦🇺", dishes: [["Meat Pie", "savory hand pie"], ["Barramundi", "grilled white fish"], ["Lamingtons", "coconut sponge squares"], ["Pavlova", "meringue fruit dessert"], ["Vegemite Toast", "savory spread on toast"]] },
-    { country: "Pakistan", flag: "🇵🇰", dishes: [["Biryani", "spiced layered rice"], ["Nihari", "slow-cooked beef stew"], ["Haleem", "meat & lentil porridge"], ["Seekh Kebab", "grilled minced-meat skewers"], ["Chapli Kebab", "spiced fried patty"]] },
-    { country: "Sri Lanka", flag: "🇱🇰", dishes: [["Rice and Curry", "rice with curries"], ["Hoppers", "bowl-shaped rice pancakes"], ["Kottu", "chopped flatbread stir-fry"], ["Lamprais", "rice baked in banana leaf"], ["Pol Sambol", "spicy coconut relish"]] },
-    { country: "Singapore", flag: "🇸🇬", dishes: [["Hainanese Chicken Rice", "poached chicken & rice"], ["Chilli Crab", "crab in spicy sauce"], ["Laksa", "spicy noodle soup"], ["Char Kway Teow", "stir-fried noodles"], ["Satay", "grilled skewers"]] },
-    { country: "Israel", flag: "🇮🇱", dishes: [["Falafel", "fried chickpea balls"], ["Hummus", "chickpea dip"], ["Shakshuka", "eggs in tomato sauce"], ["Sabich", "pita with eggplant & egg"], ["Shawarma", "wrapped roasted meat"]] },
-    { country: "Czech Republic", flag: "🇨🇿", dishes: [["Svíčková", "creamy beef & dumplings"], ["Goulash", "beef stew"], ["Trdelník", "sweet rolled pastry"], ["Vepřo Knedlo Zelo", "pork, dumplings & kraut"], ["Bramboráky", "potato pancakes"]] },
-    { country: "Norway", flag: "🇳🇴", dishes: [["Fårikål", "lamb & cabbage stew"], ["Gravlaks", "cured salmon"], ["Kjøttkaker", "meat patties in gravy"], ["Lapskaus", "meat & potato stew"], ["Brunost", "sweet brown cheese"]] },
-    { country: "Denmark", flag: "🇩🇰", dishes: [["Smørrebrød", "open-faced sandwich"], ["Frikadeller", "pan-fried meatballs"], ["Æbleskiver", "spherical pancakes"], ["Flæskesteg", "roast pork with crackling"], ["Wienerbrød", "Danish pastry"]] },
+    { country: "South Korea", flag: "🇰🇷", dishes: [["Kimchi", "fermented spicy cabbage", "v", 1], ["Bibimbap", "rice, veg & egg bowl", "v", 0], ["Bulgogi", "marinated grilled beef", "beef", 0], ["Tteokbokki", "spicy rice cakes", "v", 0], ["Korean Fried Chicken", "crispy glazed chicken", "chicken", 0]] },
+    { country: "Germany", flag: "🇩🇪", dishes: [["Schnitzel", "breaded fried cutlet", "other", 0], ["Bratwurst", "grilled sausage", "other", 0], ["Sauerbraten", "marinated pot roast", "beef", 0], ["Pretzel", "twisted baked bread", "v", 0], ["Black Forest Cake", "cherry chocolate cake", "v", 0]] },
+    { country: "Brazil", flag: "🇧🇷", dishes: [["Feijoada", "black bean & pork stew", "other", 1], ["Pão de Queijo", "cheese bread balls", "v", 1], ["Moqueca", "coconut fish stew", "fish", 1], ["Coxinha", "fried chicken croquettes", "chicken", 0], ["Brigadeiro", "chocolate fudge balls", "v", 1]] },
+    { country: "Argentina", flag: "🇦🇷", dishes: [["Asado", "grilled barbecue meats", "beef", 1], ["Empanadas", "stuffed pastry pockets", "beef", 0], ["Milanesa", "breaded meat cutlet", "other", 0], ["Choripán", "sausage sandwich", "other", 0], ["Dulce de Leche", "sweet caramel spread", "v", 1]] },
+    { country: "Peru", flag: "🇵🇪", dishes: [["Ceviche", "citrus-cured raw fish", "fish", 1], ["Lomo Saltado", "stir-fried beef & fries", "beef", 0], ["Ají de Gallina", "creamy chili chicken", "chicken", 0], ["Causa", "layered potato dish", "v", 1], ["Anticuchos", "grilled beef-heart skewers", "other", 1]] },
+    { country: "Lebanon", flag: "🇱🇧", dishes: [["Hummus", "chickpea dip", "v", 1], ["Tabbouleh", "parsley & bulgur salad", "v", 0], ["Kibbeh", "stuffed bulgur croquettes", "other", 0], ["Manakish", "topped flatbread", "v", 0], ["Fattoush", "bread & vegetable salad", "v", 0]] },
+    { country: "Iran", flag: "🇮🇷", dishes: [["Chelo Kabab", "grilled kebab with rice", "other", 1], ["Ghormeh Sabzi", "herb & bean stew", "other", 1], ["Fesenjan", "walnut-pomegranate stew", "chicken", 1], ["Tahdig", "crispy rice", "v", 1], ["Ash Reshteh", "noodle & bean soup", "v", 0]] },
+    { country: "Indonesia", flag: "🇮🇩", dishes: [["Nasi Goreng", "fried rice", "other", 0], ["Rendang", "slow-cooked beef curry", "beef", 1], ["Satay", "skewers with peanut sauce", "other", 0], ["Gado-Gado", "veg & peanut salad", "v", 0], ["Soto", "spiced soup", "other", 1]] },
+    { country: "Ethiopia", flag: "🇪🇹", dishes: [["Injera", "spongy sourdough flatbread", "v", 0], ["Doro Wat", "spicy chicken stew", "chicken", 1], ["Tibs", "sautéed meat & veg", "other", 1], ["Kitfo", "minced raw beef", "beef", 1], ["Shiro", "spiced chickpea stew", "v", 1]] },
+    { country: "Nigeria", flag: "🇳🇬", dishes: [["Jollof Rice", "spiced tomato rice", "v", 1], ["Egusi Soup", "melon-seed stew", "other", 1], ["Suya", "spicy grilled skewers", "other", 1], ["Pounded Yam", "smooth yam staple", "v", 1], ["Akara", "fried bean fritters", "v", 1]] },
+    { country: "South Africa", flag: "🇿🇦", dishes: [["Bobotie", "spiced baked mince", "beef", 0], ["Bunny Chow", "curry in a bread loaf", "other", 0], ["Boerewors", "coiled grilled sausage", "other", 0], ["Biltong", "cured dried meat", "beef", 1], ["Malva Pudding", "sweet sponge dessert", "v", 0]] },
+    { country: "Sweden", flag: "🇸🇪", dishes: [["Swedish Meatballs", "meatballs in gravy", "other", 0], ["Gravlax", "cured salmon", "fish", 1], ["Janssons Frestelse", "creamy potato bake", "fish", 1], ["Kanelbulle", "cinnamon bun", "v", 0], ["Raggmunk", "potato pancakes", "v", 0]] },
+    { country: "Switzerland", flag: "🇨🇭", dishes: [["Cheese Fondue", "melted cheese dip", "v", 0], ["Raclette", "melted cheese & potatoes", "v", 1], ["Rösti", "crispy potato cake", "v", 1], ["Älplermagronen", "alpine pasta bake", "v", 0], ["Zürcher Geschnetzeltes", "creamy veal strips", "other", 0]] },
+    { country: "Austria", flag: "🇦🇹", dishes: [["Wiener Schnitzel", "breaded veal cutlet", "other", 0], ["Sachertorte", "chocolate cake", "v", 0], ["Tafelspitz", "boiled beef dish", "beef", 1], ["Apfelstrudel", "apple pastry", "v", 0], ["Kaiserschmarrn", "shredded sweet pancake", "v", 0]] },
+    { country: "Hungary", flag: "🇭🇺", dishes: [["Goulash", "paprika beef stew", "beef", 1], ["Chicken Paprikash", "creamy paprika chicken", "chicken", 0], ["Lángos", "fried flatbread", "v", 0], ["Dobos Torte", "layered sponge cake", "v", 0], ["Halászlé", "spicy fish soup", "fish", 1]] },
+    { country: "Belgium", flag: "🇧🇪", dishes: [["Moules-Frites", "mussels with fries", "fish", 1], ["Belgian Waffles", "fluffy waffles", "v", 0], ["Carbonnade Flamande", "beer beef stew", "beef", 0], ["Stoofvlees", "braised beef stew", "beef", 0], ["Speculoos", "spiced biscuit", "v", 0]] },
+    { country: "Cuba", flag: "🇨🇺", dishes: [["Ropa Vieja", "shredded beef stew", "beef", 1], ["Moros y Cristianos", "rice & black beans", "v", 1], ["Cuban Sandwich", "pressed ham & pork sandwich", "other", 0], ["Picadillo", "seasoned ground beef", "beef", 1], ["Tostones", "fried plantains", "v", 1]] },
+    { country: "Colombia", flag: "🇨🇴", dishes: [["Bandeja Paisa", "loaded meat platter", "other", 1], ["Arepas", "grilled corn cakes", "v", 1], ["Ajiaco", "chicken & potato soup", "chicken", 1], ["Sancocho", "hearty meat soup", "other", 1], ["Empanadas", "fried stuffed pastries", "other", 1]] },
+    { country: "Australia", flag: "🇦🇺", dishes: [["Meat Pie", "savory hand pie", "other", 0], ["Barramundi", "grilled white fish", "fish", 1], ["Lamingtons", "coconut sponge squares", "v", 0], ["Pavlova", "meringue fruit dessert", "v", 1], ["Vegemite Toast", "savory spread on toast", "v", 0]] },
+    { country: "Pakistan", flag: "🇵🇰", dishes: [["Biryani", "spiced layered rice", "chicken", 1], ["Nihari", "slow-cooked beef stew", "beef", 0], ["Haleem", "meat & lentil porridge", "other", 0], ["Seekh Kebab", "grilled minced-meat skewers", "other", 1], ["Chapli Kebab", "spiced fried patty", "other", 0]] },
+    { country: "Sri Lanka", flag: "🇱🇰", dishes: [["Rice and Curry", "rice with curries", "v", 1], ["Hoppers", "bowl-shaped rice pancakes", "v", 1], ["Kottu", "chopped flatbread stir-fry", "other", 0], ["Lamprais", "rice baked in banana leaf", "other", 0], ["Pol Sambol", "spicy coconut relish", "v", 1]] },
+    { country: "Singapore", flag: "🇸🇬", dishes: [["Hainanese Chicken Rice", "poached chicken & rice", "chicken", 1], ["Chilli Crab", "crab in spicy sauce", "fish", 0], ["Laksa", "spicy noodle soup", "fish", 0], ["Char Kway Teow", "stir-fried noodles", "fish", 0], ["Satay", "grilled skewers", "other", 0]] },
+    { country: "Israel", flag: "🇮🇱", dishes: [["Falafel", "fried chickpea balls", "v", 1], ["Hummus", "chickpea dip", "v", 1], ["Shakshuka", "eggs in tomato sauce", "v", 1], ["Sabich", "pita with eggplant & egg", "v", 0], ["Shawarma", "wrapped roasted meat", "other", 0]] },
+    { country: "Czech Republic", flag: "🇨🇿", dishes: [["Svíčková", "creamy beef & dumplings", "beef", 0], ["Goulash", "beef stew", "beef", 0], ["Trdelník", "sweet rolled pastry", "v", 0], ["Vepřo Knedlo Zelo", "pork, dumplings & kraut", "other", 0], ["Bramboráky", "potato pancakes", "v", 0]] },
+    { country: "Norway", flag: "🇳🇴", dishes: [["Fårikål", "lamb & cabbage stew", "other", 1], ["Gravlaks", "cured salmon", "fish", 1], ["Kjøttkaker", "meat patties in gravy", "other", 0], ["Lapskaus", "meat & potato stew", "other", 1], ["Brunost", "sweet brown cheese", "v", 1]] },
+    { country: "Denmark", flag: "🇩🇰", dishes: [["Smørrebrød", "open-faced sandwich", "other", 0], ["Frikadeller", "pan-fried meatballs", "other", 0], ["Æbleskiver", "spherical pancakes", "v", 0], ["Flæskesteg", "roast pork with crackling", "other", 1], ["Wienerbrød", "Danish pastry", "v", 0]] },
   ];
 
   // Countries already shown this session, so the random picker never repeats one
@@ -450,6 +506,13 @@
   // or an empty array (curated dish-search cards).
   const history = [];
   let historyIndex = -1;
+
+  // Active dish filter: "all" | "v" | "fish" | "chicken" | "beef" | "other".
+  let currentFilter = "all";
+
+  const FILTER_LABELS = {
+    all: "all", v: "vegetarian", fish: "fish", chicken: "chicken", beef: "beef", other: "other",
+  };
 
   const LOADER_MESSAGES = [
     "Spinning the globe…",
@@ -503,9 +566,26 @@
     return items.slice(0, -1).join(", ") + " & " + items[items.length - 1];
   }
 
-  // Attach a short "kind of food" hint to each TheMealDB meal by looking it up and
-  // combining its category with its main ingredients (e.g. "seafood with prawns &
-  // garlic"). Best-effort and in parallel; failures just leave the hint blank.
+  // Map a TheMealDB category to one of our filter buckets.
+  function categoryToType(category, isVeg) {
+    if (isVeg) return "v";
+    if (category === "beef") return "beef";
+    if (category === "chicken") return "chicken";
+    if (category === "seafood") return "fish";
+    return "other";
+  }
+
+  // Words that signal gluten in an ingredient list; if none appear, treat as GF.
+  const GLUTEN_WORDS = [
+    "flour", "bread", "breadcrumb", "panko", "pasta", "spaghetti", "macaroni",
+    "lasagne", "lasagna", "noodle", "wheat", "soy sauce", "couscous", "barley",
+    "pastry", "dough", "bun", "tortilla", "cracker", "biscuit", "cake", "beer",
+    "semolina", "bulgur", "oats", "malt", "batter", "filo", "phyllo", "croissant",
+    "pita", "naan", "chapati", "roti", "dumpling", "puff",
+  ];
+
+  // Attach a short "kind of food" hint plus diet/type tags to each TheMealDB meal
+  // by looking it up. Best-effort and in parallel; failures just leave tags blank.
   async function enrichDescriptions(meals) {
     await Promise.all(meals.map(async (m) => {
       try {
@@ -516,20 +596,33 @@
         if (!full) return;
 
         const category = (full.strCategory || "").trim().toLowerCase();
-        const ingredients = [];
-        for (let i = 1; i <= 20 && ingredients.length < 3; i++) {
+        const tags = (full.strTags || "").toLowerCase();
+
+        // Collect all ingredients (for the gluten scan) and the first few (for the hint).
+        const allIngredients = [];
+        const mainIngredients = [];
+        for (let i = 1; i <= 20; i++) {
           const ing = (full["strIngredient" + i] || "").trim().toLowerCase();
-          // Skip blanks and anything that just repeats the category (e.g. "chicken").
-          if (ing && ing !== category) ingredients.push(ing);
+          if (!ing) continue;
+          allIngredients.push(ing);
+          if (mainIngredients.length < 3 && ing !== category) mainIngredients.push(ing);
         }
 
         let desc = category;
-        if (ingredients.length) {
-          desc = (category ? category + " with " : "") + listJoin(ingredients);
+        if (mainIngredients.length) {
+          desc = (category ? category + " with " : "") + listJoin(mainIngredients);
         }
         if (desc) m.desc = desc;
+
+        const isVeg = category === "vegetarian" || category === "vegan" ||
+          /vegetarian|vegan/.test(tags);
+        m.type = categoryToType(category, isVeg);
+        m.v = isVeg;
+
+        const blob = allIngredients.join(" ");
+        m.gf = !GLUTEN_WORDS.some((w) => blob.indexOf(w) !== -1);
       } catch (_) {
-        /* leave m.desc undefined */
+        /* leave tags undefined */
       }
     }));
   }
@@ -613,6 +706,30 @@
     return note ? `<p class="reset-note">${escapeHtml(note)}</p>` : "";
   }
 
+  // Vegetarian / gluten-free badges shown in the top-right of a dish card.
+  function badgesHtml(isVeg, isGF) {
+    if (!isVeg && !isGF) return "";
+    return (
+      `<div class="dish-badges">` +
+        (isVeg ? `<span class="badge badge-v" title="Vegetarian">V</span>` : "") +
+        (isGF ? `<span class="badge badge-gf" title="Usually gluten-free — check the recipe">GF</span>` : "") +
+      `</div>`
+    );
+  }
+
+  function matchesFilter(type) {
+    return currentFilter === "all" || type === currentFilter;
+  }
+
+  // Wrap dish cards in the grid, or show a friendly note if the filter hid them all.
+  function gridHtml(cards, info) {
+    if (cards) return `<div class="dish-grid">${cards}</div>`;
+    return (
+      `<div class="message">No ${escapeHtml(FILTER_LABELS[currentFilter])} dishes ` +
+      `for ${escapeHtml(info.country)} this time — try the arrows or spin again!</div>`
+    );
+  }
+
   // The country banner with prev/next arrows flanking the flag + name. Arrows are
   // wired/enabled separately by wireNav() after the markup is inserted.
   function bannerHtml(info, sub, note) {
@@ -661,10 +778,11 @@
 
   // TheMealDB photo cards linking to full recipes.
   function renderResults(info, dishes, note) {
-    const cards = dishes.map((d) => {
+    const cards = dishes.filter((d) => matchesFilter(d.type)).map((d) => {
       const recipeUrl = "https://www.themealdb.com/meal/" + encodeURIComponent(d.idMeal);
       return (
         `<a class="dish-card" href="${recipeUrl}" target="_blank" rel="noopener">` +
+          badgesHtml(d.v, d.gf) +
           `<img class="dish-thumb" src="${d.strMealThumb}" alt="${escapeHtml(d.strMeal)}" loading="lazy" />` +
           `<div class="dish-body">` +
             `<div class="dish-name">${escapeHtml(d.strMeal)}</div>` +
@@ -677,29 +795,32 @@
 
     results.innerHTML =
       bannerHtml(info, "Most popular dishes — click any to see the full recipe", note) +
-      `<div class="dish-grid">${cards}</div>`;
+      gridHtml(cards, info);
     wireNav();
   }
 
   // Curated dish cards, each linking to a recipe search for that dish.
   function renderDishLinks(info, note) {
-    const cards = info.dishes.map(([name, desc]) => {
-      const url = "https://www.google.com/search?q=" +
-        encodeURIComponent(name + " " + info.country + " recipe");
-      return (
-        `<a class="dish-card fallback-card" href="${url}" target="_blank" rel="noopener">` +
-          `<div class="dish-body">` +
-            `<div class="dish-name">${escapeHtml(name)}</div>` +
-            (desc ? `<div class="dish-desc">(${escapeHtml(desc)})</div>` : "") +
-            `<div class="dish-link">Find recipe →</div>` +
-          `</div>` +
-        `</a>`
-      );
-    }).join("");
+    const cards = info.dishes
+      .filter(([, , type]) => matchesFilter(type))
+      .map(([name, desc, type, gf]) => {
+        const url = "https://www.google.com/search?q=" +
+          encodeURIComponent(name + " " + info.country + " recipe");
+        return (
+          `<a class="dish-card fallback-card" href="${url}" target="_blank" rel="noopener">` +
+            badgesHtml(type === "v", !!gf) +
+            `<div class="dish-body">` +
+              `<div class="dish-name">${escapeHtml(name)}</div>` +
+              (desc ? `<div class="dish-desc">(${escapeHtml(desc)})</div>` : "") +
+              `<div class="dish-link">Find recipe →</div>` +
+            `</div>` +
+          `</a>`
+        );
+      }).join("");
 
     results.innerHTML =
       bannerHtml(info, "Most popular dishes — tap any to find the recipe", note) +
-      `<div class="dish-grid">${cards}</div>`;
+      gridHtml(cards, info);
     wireNav();
   }
 
@@ -719,6 +840,13 @@
   }
 
   btn.addEventListener("click", discover);
+
+  // Changing the filter re-renders the country currently in view (no new fetch).
+  const dietFilter = document.getElementById("dietFilter");
+  dietFilter.addEventListener("change", () => {
+    currentFilter = dietFilter.value;
+    if (historyIndex >= 0) showCurrent();
+  });
 })();
 </script>
 </body>
