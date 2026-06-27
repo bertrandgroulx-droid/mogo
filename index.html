@@ -178,6 +178,36 @@
     text-align: center;
     margin-bottom: 1.5rem;
   }
+  .country-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+  }
+  .country-center { flex: 0 1 auto; min-width: 0; }
+  .nav-arrow {
+    flex: 0 0 auto;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid var(--card-border);
+    background: var(--card);
+    color: var(--text);
+    font-size: 1.9rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+  }
+  .nav-arrow:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+  }
+  .nav-arrow:active:not(:disabled) { transform: none; }
+  .nav-arrow:disabled { opacity: 0.25; cursor: not-allowed; }
   .country-flag { font-size: 3.5rem; line-height: 1; }
   .country-name {
     font-size: 2rem;
@@ -374,6 +404,13 @@
   // until the user has seen them all.
   const seenCountries = new Set();
 
+  // Ordered log of what's been shown this session, plus a pointer, so the user
+  // can step backward/forward through their discoveries with the arrow buttons.
+  // Each entry is { info, dishes } where dishes is TheMealDB meals (photo cards)
+  // or an empty array (curated dish-search cards).
+  const history = [];
+  let historyIndex = -1;
+
   const LOADER_MESSAGES = [
     "Spinning the globe…",
     "Picking a country…",
@@ -461,17 +498,74 @@
     await minShow;
     stopLoader();
 
-    if (dishes.length) {
-      renderResults(country, dishes, note);
+    // Record this discovery and jump to it.
+    history.push({ info: country, dishes });
+    historyIndex = history.length - 1;
+    showCurrent(note);
+  }
+
+  // Render whatever entry the history pointer is on. `note` is only passed on a
+  // fresh discovery (e.g. the "explored every country" message), not when paging.
+  function showCurrent(note) {
+    const entry = history[historyIndex];
+    if (!entry) return;
+    if (entry.dishes && entry.dishes.length) {
+      renderResults(entry.info, entry.dishes, note);
     } else {
-      // No API photos — show curated dishes, each linking to a recipe search.
-      renderDishLinks(country, note);
+      renderDishLinks(entry.info, note);
+    }
+  }
+
+  function goPrev() {
+    if (historyIndex > 0) {
+      historyIndex--;
+      showCurrent();
+    }
+  }
+
+  function goNext() {
+    if (historyIndex < history.length - 1) {
+      historyIndex++;
+      showCurrent();
     }
   }
 
   // Optional reset note shown above the country banner.
   function noteHtml(note) {
     return note ? `<p class="reset-note">${escapeHtml(note)}</p>` : "";
+  }
+
+  // The country banner with prev/next arrows flanking the flag + name. Arrows are
+  // wired/enabled separately by wireNav() after the markup is inserted.
+  function bannerHtml(info, sub, note) {
+    return (
+      `<div class="country-banner">` +
+        noteHtml(note) +
+        `<div class="country-nav">` +
+          `<button type="button" class="nav-arrow nav-prev" aria-label="Previous country">‹</button>` +
+          `<div class="country-center">` +
+            `<div class="country-flag">${info.flag}</div>` +
+            countryHeading(info) +
+            `<p class="country-sub">${sub}</p>` +
+          `</div>` +
+          `<button type="button" class="nav-arrow nav-next" aria-label="Next country">›</button>` +
+        `</div>` +
+      `</div>`
+    );
+  }
+
+  // Hook up the arrow buttons and reflect whether each end of history is reached.
+  function wireNav() {
+    const prev = results.querySelector(".nav-prev");
+    const next = results.querySelector(".nav-next");
+    if (prev) {
+      prev.disabled = historyIndex <= 0;
+      prev.addEventListener("click", goPrev);
+    }
+    if (next) {
+      next.disabled = historyIndex >= history.length - 1;
+      next.addEventListener("click", goNext);
+    }
   }
 
   // Country heading that links to the country on Google Maps.
@@ -503,13 +597,9 @@
     }).join("");
 
     results.innerHTML =
-      `<div class="country-banner">` +
-        noteHtml(note) +
-        `<div class="country-flag">${info.flag}</div>` +
-        countryHeading(info) +
-        `<p class="country-sub">Most popular dishes — click any to see the full recipe</p>` +
-      `</div>` +
+      bannerHtml(info, "Most popular dishes — click any to see the full recipe", note) +
       `<div class="dish-grid">${cards}</div>`;
+    wireNav();
   }
 
   // Curated dish cards, each linking to a recipe search for that dish.
@@ -528,13 +618,9 @@
     }).join("");
 
     results.innerHTML =
-      `<div class="country-banner">` +
-        noteHtml(note) +
-        `<div class="country-flag">${info.flag}</div>` +
-        countryHeading(info) +
-        `<p class="country-sub">Most popular dishes — tap any to find the recipe</p>` +
-      `</div>` +
+      bannerHtml(info, "Most popular dishes — tap any to find the recipe", note) +
       `<div class="dish-grid">${cards}</div>`;
+    wireNav();
   }
 
   function renderError(err) {

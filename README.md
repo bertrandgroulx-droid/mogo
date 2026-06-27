@@ -11,6 +11,8 @@ you company during the search.
 
 - 🎲 **One-click discovery** — picks a random country every press, and never
   repeats one until you've travelled through all of them.
+- ◀ ▶ **Browse your history** — arrows on either side of the country let you
+  step back and forward through the countries you've discovered this session.
 - 🌐 **54 countries, always with recipes** — a built-in list of iconic dishes
   for every country guarantees options, with photo cards and full recipe links
   pulled from the free [TheMealDB](https://www.themealdb.com) API where available.
