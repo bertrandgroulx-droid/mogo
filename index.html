@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mogo — Spin the globe, find a feast</title>
+<meta name="description" content="Press a button and Mogo whisks you to a random country, then serves up recipes for its most popular dishes." />
+<style>
+  :root {
+    --bg-1: #0f2027;
+    --bg-2: #203a43;
+    --bg-3: #2c5364;
+    --accent: #ffb703;
+    --accent-2: #fb8500;
+    --leaf: #80b918;
+    --card: rgba(255, 255, 255, 0.07);
+    --card-border: rgba(255, 255, 255, 0.15);
+    --text: #f4f7f5;
+    --muted: #b8c4c2;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+    color: var(--text);
+    background: linear-gradient(160deg, var(--bg-1), var(--bg-2), var(--bg-3));
+    background-attachment: fixed;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 4rem;
+  }
+
+  /* ---------- Logo ---------- */
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    user-select: none;
+  }
+  .logo-mark {
+    font-size: 3rem;
+    line-height: 1;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
+    animation: bob 3s ease-in-out infinite;
+  }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0) rotate(-4deg); }
+    50%      { transform: translateY(-8px) rotate(4deg); }
+  }
+  .logo-text {
+    font-size: 3.4rem;
+    font-weight: 900;
+    letter-spacing: -1px;
+    background: linear-gradient(90deg, var(--accent), var(--leaf), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+  .tagline {
+    margin: 0.25rem 0 2rem;
+    color: var(--muted);
+    font-size: 1.05rem;
+    text-align: center;
+  }
+
+  /* ---------- Button ---------- */
+  .discover-btn {
+    border: none;
+    cursor: pointer;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #1a1a1a;
+    padding: 0.95rem 2.2rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    box-shadow: 0 8px 24px rgba(251, 133, 0, 0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
+  }
+  .discover-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(251, 133, 0, 0.55); }
+  .discover-btn:active { transform: translateY(0); }
+  .discover-btn:disabled { cursor: not-allowed; opacity: 0.55; transform: none; box-shadow: none; }
+
+  /* ---------- Spinning Earth + vegetables loader ---------- */
+  .loader {
+    margin: 2.5rem 0 1rem;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.1rem;
+  }
+  .loader.active { display: flex; }
+
+  .earth-scene {
+    position: relative;
+    width: 140px;
+    height: 140px;
+  }
+
+  /* The globe itself: a CSS sphere whose surface scrolls to look like it's spinning */
+  .earth {
+    position: absolute;
+    inset: 10px;
+    border-radius: 50%;
+    background-color: #1f7ad4;
+    background-image:
+      radial-gradient(circle at 30% 25%, #6fd3a3 0 8%, transparent 9%),
+      radial-gradient(circle at 62% 40%, #6fd3a3 0 11%, transparent 12%),
+      radial-gradient(circle at 85% 70%, #57b98a 0 9%, transparent 10%),
+      radial-gradient(circle at 20% 72%, #57b98a 0 12%, transparent 13%),
+      radial-gradient(circle at 48% 85%, #6fd3a3 0 7%, transparent 8%),
+      radial-gradient(circle at 8% 45%, #57b98a 0 6%, transparent 7%);
+    background-size: 200% 100%;
+    box-shadow:
+      inset -14px -10px 28px rgba(0, 0, 0, 0.55),
+      inset 10px 8px 22px rgba(255, 255, 255, 0.25),
+      0 8px 24px rgba(0, 0, 0, 0.4);
+    animation: spin-surface 4s linear infinite;
+  }
+  /* Glossy highlight to sell the sphere */
+  .earth::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.55), transparent 42%);
+    pointer-events: none;
+  }
+  @keyframes spin-surface {
+    from { background-position: 0% 50%; }
+    to   { background-position: -200% 50%; }
+  }
+
+  /* Vegetables "run" around the top of the globe on an orbit */
+  .veg-orbit {
+    position: absolute;
+    inset: 0;
+    animation: orbit 5s linear infinite;
+  }
+  .veg-orbit.reverse { animation-direction: reverse; animation-duration: 7s; }
+  .veg {
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    font-size: 1.5rem;
+    transform: translateX(-50%);
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.4));
+    /* counter-rotate so each veg stays upright while "running" along the top */
+    animation: hop 0.6s ease-in-out infinite;
+  }
+  @keyframes orbit {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  @keyframes hop {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50%      { transform: translateX(-50%) translateY(-5px); }
+  }
+
+  .loader-text {
+    color: var(--muted);
+    font-size: 1.05rem;
+    min-height: 1.4em;
+    text-align: center;
+  }
+
+  /* ---------- Results ---------- */
+  .results {
+    width: 100%;
+    max-width: 760px;
+    margin-top: 1.5rem;
+  }
+  .country-banner {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  .country-flag { font-size: 3.5rem; line-height: 1; }
+  .country-name {
+    font-size: 2rem;
+    font-weight: 800;
+    margin: 0.3rem 0 0.1rem;
+  }
+  .country-sub { color: var(--muted); margin: 0; }
+
+  .dish-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+  .dish-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .dish-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.35);
+  }
+  .dish-thumb {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    display: block;
+    background: #2c5364;
+  }
+  .dish-body { padding: 0.8rem 0.9rem 1rem; }
+  .dish-name { font-weight: 700; font-size: 1.05rem; }
+  .dish-link {
+    margin-top: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .message {
+    text-align: center;
+    color: var(--muted);
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 1.2rem;
+  }
+  .message a { color: var(--accent); font-weight: 700; }
+
+  footer {
+    margin-top: auto;
+    padding-top: 2.5rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+    text-align: center;
+  }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+  <header class="logo">
+    <span class="logo-mark" aria-hidden="true">🌍</span>
+    <span class="logo-text">Mogo</span>
+  </header>
+  <p class="tagline">Press the button. Spin the globe. Cook the world.</p>
+
+  <button id="discoverBtn" class="discover-btn">🍽️ Surprise me with a country!</button>
+
+  <!-- Spinning Earth with vegetables running on top -->
+  <div id="loader" class="loader" aria-hidden="true">
+    <div class="earth-scene">
+      <div class="earth"></div>
+      <div class="veg-orbit">
+        <span class="veg" style="animation-delay: 0s">🥕</span>
+      </div>
+      <div class="veg-orbit reverse" style="animation-delay: -1s">
+        <span class="veg" style="animation-delay: -.2s">🥦</span>
+      </div>
+      <div class="veg-orbit" style="animation-delay: -2.5s">
+        <span class="veg" style="animation-delay: -.4s">🍅</span>
+      </div>
+      <div class="veg-orbit reverse" style="animation-delay: -3.5s">
+        <span class="veg" style="animation-delay: -.1s">🌽</span>
+      </div>
+    </div>
+    <div id="loaderText" class="loader-text">Spinning the globe…</div>
+  </div>
+
+  <main id="results" class="results" aria-live="polite"></main>
+
+  <footer>
+    Recipes from <a href="https://www.themealdb.com" target="_blank" rel="noopener">TheMealDB</a> · Made with 🥗 by Mogo
+  </footer>
+
+<script>
+(() => {
+  "use strict";
+
+  // TheMealDB "areas" are nationalities. Map each to a friendly country name + flag.
+  const AREA_INFO = {
+    American:  { country: "United States", flag: "🇺🇸" },
+    British:   { country: "United Kingdom", flag: "🇬🇧" },
+    Canadian:  { country: "Canada", flag: "🇨🇦" },
+    Chinese:   { country: "China", flag: "🇨🇳" },
+    Croatian:  { country: "Croatia", flag: "🇭🇷" },
+    Dutch:     { country: "Netherlands", flag: "🇳🇱" },
+    Egyptian:  { country: "Egypt", flag: "🇪🇬" },
+    Filipino:  { country: "Philippines", flag: "🇵🇭" },
+    French:    { country: "France", flag: "🇫🇷" },
+    Greek:     { country: "Greece", flag: "🇬🇷" },
+    Indian:    { country: "India", flag: "🇮🇳" },
+    Irish:     { country: "Ireland", flag: "🇮🇪" },
+    Italian:   { country: "Italy", flag: "🇮🇹" },
+    Jamaican:  { country: "Jamaica", flag: "🇯🇲" },
+    Japanese:  { country: "Japan", flag: "🇯🇵" },
+    Kenyan:    { country: "Kenya", flag: "🇰🇪" },
+    Malaysian: { country: "Malaysia", flag: "🇲🇾" },
+    Mexican:   { country: "Mexico", flag: "🇲🇽" },
+    Moroccan:  { country: "Morocco", flag: "🇲🇦" },
+    Polish:    { country: "Poland", flag: "🇵🇱" },
+    Portuguese:{ country: "Portugal", flag: "🇵🇹" },
+    Russian:   { country: "Russia", flag: "🇷🇺" },
+    Spanish:   { country: "Spain", flag: "🇪🇸" },
+    Thai:      { country: "Thailand", flag: "🇹🇭" },
+    Tunisian:  { country: "Tunisia", flag: "🇹🇳" },
+    Turkish:   { country: "Turkey", flag: "🇹🇷" },
+    Ukrainian: { country: "Ukraine", flag: "🇺🇦" },
+    Vietnamese:{ country: "Vietnam", flag: "🇻🇳" },
+  };
+
+  const LOADER_MESSAGES = [
+    "Spinning the globe…",
+    "Picking a country…",
+    "Chopping vegetables…",
+    "Simmering the menu…",
+    "Plating the recipes…",
+  ];
+
+  const btn = document.getElementById("discoverBtn");
+  const loader = document.getElementById("loader");
+  const loaderText = document.getElementById("loaderText");
+  const results = document.getElementById("results");
+
+  let messageTimer = null;
+
+  function startLoader() {
+    results.innerHTML = "";
+    loader.classList.add("active");
+    loader.setAttribute("aria-hidden", "false");
+    btn.disabled = true;
+    let i = 0;
+    loaderText.textContent = LOADER_MESSAGES[0];
+    messageTimer = setInterval(() => {
+      i = (i + 1) % LOADER_MESSAGES.length;
+      loaderText.textContent = LOADER_MESSAGES[i];
+    }, 900);
+  }
+
+  function stopLoader() {
+    loader.classList.remove("active");
+    loader.setAttribute("aria-hidden", "true");
+    btn.disabled = false;
+    clearInterval(messageTimer);
+    messageTimer = null;
+  }
+
+  function pickRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  async function getJSON(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Network error: " + res.status);
+    return res.json();
+  }
+
+  async function discover() {
+    startLoader();
+    // A tiny artificial floor so the delightful loader is actually seen.
+    const minShow = new Promise((r) => setTimeout(r, 1400));
+
+    try {
+      // 1. Get the list of available areas (countries) from TheMealDB.
+      const areaData = await getJSON("https://www.themealdb.com/api/json/v1/1/list.php?a=list");
+      const areas = (areaData.meals || [])
+        .map((m) => m.strArea)
+        .filter((a) => a && a !== "Unknown");
+
+      if (!areas.length) throw new Error("No countries returned.");
+
+      // 2. Pick a random country and fetch its most popular dishes.
+      const area = pickRandom(areas);
+      const dishData = await getJSON(
+        "https://www.themealdb.com/api/json/v1/1/filter.php?a=" + encodeURIComponent(area)
+      );
+      const dishes = (dishData.meals || []).slice(0, 8);
+
+      await minShow;
+      stopLoader();
+      renderResults(area, dishes);
+    } catch (err) {
+      await minShow;
+      stopLoader();
+      renderError(err);
+    }
+  }
+
+  function renderResults(area, dishes) {
+    const info = AREA_INFO[area] || { country: area, flag: "🍴" };
+
+    if (!dishes.length) {
+      results.innerHTML =
+        `<div class="message">We landed in <strong>${info.flag} ${info.country}</strong>, ` +
+        `but couldn't find dishes this time. Press the button to try again!</div>`;
+      return;
+    }
+
+    const cards = dishes.map((d) => {
+      const recipeUrl = "https://www.themealdb.com/meal/" + encodeURIComponent(d.idMeal);
+      return (
+        `<a class="dish-card" href="${recipeUrl}" target="_blank" rel="noopener">` +
+          `<img class="dish-thumb" src="${d.strMealThumb}" alt="${escapeHtml(d.strMeal)}" loading="lazy" />` +
+          `<div class="dish-body">` +
+            `<div class="dish-name">${escapeHtml(d.strMeal)}</div>` +
+            `<div class="dish-link">View recipe →</div>` +
+          `</div>` +
+        `</a>`
+      );
+    }).join("");
+
+    results.innerHTML =
+      `<div class="country-banner">` +
+        `<div class="country-flag">${info.flag}</div>` +
+        `<h2 class="country-name">${info.country}</h2>` +
+        `<p class="country-sub">Most popular dishes — click any to see the full recipe</p>` +
+      `</div>` +
+      `<div class="dish-grid">${cards}</div>`;
+  }
+
+  function renderError(err) {
+    console.error(err);
+    results.innerHTML =
+      `<div class="message">Hmm, the kitchen's a bit busy right now. ` +
+      `Please check your connection and <a href="#" id="retryLink">try again</a>.</div>`;
+    const retry = document.getElementById("retryLink");
+    if (retry) retry.addEventListener("click", (e) => { e.preventDefault(); discover(); });
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[c]));
+  }
+
+  btn.addEventListener("click", discover);
+})();
+</script>
+</body>
+</html>
