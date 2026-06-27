@@ -91,26 +91,36 @@
   .discover-btn:active { transform: translateY(0); }
   .discover-btn:disabled { cursor: not-allowed; opacity: 0.55; transform: none; box-shadow: none; }
 
-  /* ---------- Filter ---------- */
+  /* ---------- Controls (country picker + filter) ---------- */
   .controls {
     margin-top: 1rem;
+    width: 100%;
+    max-width: 420px;
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    flex-direction: column;
+    gap: 0.6rem;
     color: var(--muted);
     font-size: 0.95rem;
   }
-  .controls select {
+  .control {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .control label { flex: 0 0 4.2rem; }
+  .control select {
+    flex: 1 1 auto;
+    min-width: 0; /* let the select shrink instead of overflowing the screen */
     font: inherit;
     color: var(--text);
     background: var(--card);
     border: 1px solid var(--card-border);
     border-radius: 999px;
-    padding: 0.4rem 0.9rem;
+    padding: 0.5rem 0.9rem;
     cursor: pointer;
   }
-  .controls select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .controls option { color: #1a1a1a; }
+  .control select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .control option { color: #1a1a1a; }
 
   /* ---------- Spinning Earth + vegetables loader ---------- */
   .loader {
@@ -296,6 +306,24 @@
     line-height: 1.5;
   }
   .country-stats .stat-rank { color: var(--accent); font-weight: 700; }
+  .country-status {
+    display: inline-block;
+    margin: 0.3rem auto 0.1rem;
+    padding: 0.15rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--card-border);
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  .country-facts {
+    margin: 0.25rem auto 0.5rem;
+    max-width: 560px;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
   .progress {
     margin: 0.9rem 0 0;
     color: var(--muted);
@@ -409,20 +437,24 @@
   <button id="discoverBtn" class="discover-btn">🍽️ Surprise me with a country!</button>
 
   <div class="controls">
-    <label for="countryPicker">Country:</label>
-    <select id="countryPicker" aria-label="Jump to a country">
-      <option value="">🎲 Random — or pick one…</option>
-    </select>
-    <label for="dietFilter">Filter:</label>
-    <select id="dietFilter" aria-label="Filter dishes by type">
-      <option value="all">Show all</option>
-      <option value="v">Vegetarian</option>
-      <option value="fish">Fish</option>
-      <option value="chicken">Chicken</option>
-      <option value="beef">Beef</option>
-      <option value="pork">Pork</option>
-      <option value="other">Other</option>
-    </select>
+    <div class="control">
+      <label for="countryPicker">Country</label>
+      <select id="countryPicker" aria-label="Jump to a country">
+        <option value="">🎲 Random — or pick one…</option>
+      </select>
+    </div>
+    <div class="control">
+      <label for="dietFilter">Filter</label>
+      <select id="dietFilter" aria-label="Filter dishes by type">
+        <option value="all">Show all</option>
+        <option value="v">Vegetarian</option>
+        <option value="fish">Fish</option>
+        <option value="chicken">Chicken</option>
+        <option value="beef">Beef</option>
+        <option value="pork">Pork</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
   </div>
   <p id="progress" class="progress" aria-live="polite"></p>
 
@@ -737,10 +769,93 @@
     "Solomon Islands": [700000, 28896],
   };
 
+  // Capital, currency and primary language(s) per country.
+  const FACTS = {
+    "United States": ["Washington, D.C.", "US Dollar", "English"], "United Kingdom": ["London", "Pound Sterling", "English"], "Canada": ["Ottawa", "Canadian Dollar", "English & French"],
+    "China": ["Beijing", "Renminbi (Yuan)", "Mandarin Chinese"], "Croatia": ["Zagreb", "Euro", "Croatian"], "Netherlands": ["Amsterdam", "Euro", "Dutch"],
+    "Egypt": ["Cairo", "Egyptian Pound", "Arabic"], "Philippines": ["Manila", "Philippine Peso", "Filipino & English"], "France": ["Paris", "Euro", "French"],
+    "Greece": ["Athens", "Euro", "Greek"], "India": ["New Delhi", "Indian Rupee", "Hindi & English"], "Ireland": ["Dublin", "Euro", "Irish & English"],
+    "Italy": ["Rome", "Euro", "Italian"], "Jamaica": ["Kingston", "Jamaican Dollar", "English & Patois"], "Japan": ["Tokyo", "Yen", "Japanese"],
+    "Kenya": ["Nairobi", "Kenyan Shilling", "Swahili & English"], "Malaysia": ["Kuala Lumpur", "Ringgit", "Malay"], "Mexico": ["Mexico City", "Mexican Peso", "Spanish"],
+    "Morocco": ["Rabat", "Moroccan Dirham", "Arabic & Berber"], "Poland": ["Warsaw", "Złoty", "Polish"], "Portugal": ["Lisbon", "Euro", "Portuguese"],
+    "Russia": ["Moscow", "Russian Ruble", "Russian"], "Spain": ["Madrid", "Euro", "Spanish"], "Thailand": ["Bangkok", "Thai Baht", "Thai"],
+    "Tunisia": ["Tunis", "Tunisian Dinar", "Arabic"], "Turkey": ["Ankara", "Turkish Lira", "Turkish"], "Ukraine": ["Kyiv", "Hryvnia", "Ukrainian"],
+    "Vietnam": ["Hanoi", "Đồng", "Vietnamese"], "South Korea": ["Seoul", "South Korean Won", "Korean"], "Germany": ["Berlin", "Euro", "German"],
+    "Brazil": ["Brasília", "Brazilian Real", "Portuguese"], "Argentina": ["Buenos Aires", "Argentine Peso", "Spanish"], "Peru": ["Lima", "Sol", "Spanish"],
+    "Lebanon": ["Beirut", "Lebanese Pound", "Arabic"], "Iran": ["Tehran", "Iranian Rial", "Persian"], "Indonesia": ["Jakarta", "Rupiah", "Indonesian"],
+    "Ethiopia": ["Addis Ababa", "Birr", "Amharic"], "Nigeria": ["Abuja", "Naira", "English"], "South Africa": ["Pretoria", "Rand", "Zulu, English & others"],
+    "Sweden": ["Stockholm", "Swedish Krona", "Swedish"], "Switzerland": ["Bern", "Swiss Franc", "German, French & Italian"], "Austria": ["Vienna", "Euro", "German"],
+    "Hungary": ["Budapest", "Forint", "Hungarian"], "Belgium": ["Brussels", "Euro", "Dutch & French"], "Cuba": ["Havana", "Cuban Peso", "Spanish"],
+    "Colombia": ["Bogotá", "Colombian Peso", "Spanish"], "Australia": ["Canberra", "Australian Dollar", "English"], "Pakistan": ["Islamabad", "Pakistani Rupee", "Urdu & English"],
+    "Sri Lanka": ["Sri Jayawardenepura Kotte", "Sri Lankan Rupee", "Sinhala & Tamil"], "Singapore": ["Singapore", "Singapore Dollar", "English, Malay, Mandarin & Tamil"], "Israel": ["Jerusalem", "Israeli Shekel", "Hebrew"],
+    "Czech Republic": ["Prague", "Czech Koruna", "Czech"], "Norway": ["Oslo", "Norwegian Krone", "Norwegian"], "Denmark": ["Copenhagen", "Danish Krone", "Danish"],
+    "Finland": ["Helsinki", "Euro", "Finnish & Swedish"], "Iceland": ["Reykjavík", "Icelandic Króna", "Icelandic"], "Romania": ["Bucharest", "Romanian Leu", "Romanian"],
+    "Bulgaria": ["Sofia", "Lev", "Bulgarian"], "Serbia": ["Belgrade", "Serbian Dinar", "Serbian"], "Slovakia": ["Bratislava", "Euro", "Slovak"],
+    "Slovenia": ["Ljubljana", "Euro", "Slovene"], "Lithuania": ["Vilnius", "Euro", "Lithuanian"], "Latvia": ["Riga", "Euro", "Latvian"],
+    "Estonia": ["Tallinn", "Euro", "Estonian"], "Georgia": ["Tbilisi", "Lari", "Georgian"], "Armenia": ["Yerevan", "Dram", "Armenian"],
+    "Azerbaijan": ["Baku", "Manat", "Azerbaijani"], "Albania": ["Tirana", "Lek", "Albanian"], "Bosnia and Herzegovina": ["Sarajevo", "Convertible Mark", "Bosnian, Croatian & Serbian"],
+    "Saudi Arabia": ["Riyadh", "Saudi Riyal", "Arabic"], "Iraq": ["Baghdad", "Iraqi Dinar", "Arabic & Kurdish"], "Syria": ["Damascus", "Syrian Pound", "Arabic"],
+    "Jordan": ["Amman", "Jordanian Dinar", "Arabic"], "Palestine": ["Ramallah", "Shekel & Dinar", "Arabic"], "Yemen": ["Sana'a", "Yemeni Rial", "Arabic"],
+    "United Arab Emirates": ["Abu Dhabi", "UAE Dirham", "Arabic"], "Afghanistan": ["Kabul", "Afghani", "Pashto & Dari"], "Bangladesh": ["Dhaka", "Taka", "Bengali"],
+    "Nepal": ["Kathmandu", "Nepalese Rupee", "Nepali"], "Bhutan": ["Thimphu", "Ngultrum", "Dzongkha"], "Myanmar": ["Naypyidaw", "Kyat", "Burmese"],
+    "Cambodia": ["Phnom Penh", "Riel", "Khmer"], "Laos": ["Vientiane", "Kip", "Lao"], "Taiwan": ["Taipei", "New Taiwan Dollar", "Mandarin Chinese"],
+    "Mongolia": ["Ulaanbaatar", "Tögrög", "Mongolian"], "Kazakhstan": ["Astana", "Tenge", "Kazakh & Russian"], "Uzbekistan": ["Tashkent", "Som", "Uzbek"],
+    "Maldives": ["Malé", "Rufiyaa", "Dhivehi"], "Ghana": ["Accra", "Cedi", "English"], "Senegal": ["Dakar", "West African CFA franc", "French"],
+    "Tanzania": ["Dodoma", "Tanzanian Shilling", "Swahili & English"], "Algeria": ["Algiers", "Algerian Dinar", "Arabic & Berber"], "Cameroon": ["Yaoundé", "Central African CFA franc", "French & English"],
+    "Ivory Coast": ["Yamoussoukro", "West African CFA franc", "French"], "Zimbabwe": ["Harare", "US Dollar & ZiG", "English, Shona & Ndebele"], "Uganda": ["Kampala", "Ugandan Shilling", "English & Swahili"],
+    "Madagascar": ["Antananarivo", "Ariary", "Malagasy & French"], "Sudan": ["Khartoum", "Sudanese Pound", "Arabic & English"], "DR Congo": ["Kinshasa", "Congolese Franc", "French"],
+    "Angola": ["Luanda", "Kwanza", "Portuguese"], "Venezuela": ["Caracas", "Bolívar", "Spanish"], "Chile": ["Santiago", "Chilean Peso", "Spanish"],
+    "Ecuador": ["Quito", "US Dollar", "Spanish"], "Bolivia": ["Sucre", "Boliviano", "Spanish, Quechua & Aymara"], "Uruguay": ["Montevideo", "Uruguayan Peso", "Spanish"],
+    "Paraguay": ["Asunción", "Guaraní", "Spanish & Guaraní"], "Guatemala": ["Guatemala City", "Quetzal", "Spanish"], "Costa Rica": ["San José", "Costa Rican Colón", "Spanish"],
+    "Panama": ["Panama City", "Balboa & US Dollar", "Spanish"], "Dominican Republic": ["Santo Domingo", "Dominican Peso", "Spanish"], "Puerto Rico": ["San Juan", "US Dollar", "Spanish & English"],
+    "Haiti": ["Port-au-Prince", "Gourde", "French & Haitian Creole"], "Trinidad and Tobago": ["Port of Spain", "TT Dollar", "English"], "El Salvador": ["San Salvador", "US Dollar", "Spanish"],
+    "New Zealand": ["Wellington", "NZ Dollar", "English & Māori"], "Fiji": ["Suva", "Fijian Dollar", "English, Fijian & Hindi"], "North Macedonia": ["Skopje", "Denar", "Macedonian"],
+    "Montenegro": ["Podgorica", "Euro", "Montenegrin"], "Kosovo": ["Pristina", "Euro", "Albanian & Serbian"], "Moldova": ["Chișinău", "Moldovan Leu", "Romanian"],
+    "Belarus": ["Minsk", "Belarusian Ruble", "Belarusian & Russian"], "Luxembourg": ["Luxembourg City", "Euro", "Luxembourgish, French & German"], "Malta": ["Valletta", "Euro", "Maltese & English"],
+    "Cyprus": ["Nicosia", "Euro", "Greek & Turkish"], "Monaco": ["Monaco", "Euro", "French"], "Andorra": ["Andorra la Vella", "Euro", "Catalan"],
+    "Liechtenstein": ["Vaduz", "Swiss Franc", "German"], "San Marino": ["City of San Marino", "Euro", "Italian"], "Kuwait": ["Kuwait City", "Kuwaiti Dinar", "Arabic"],
+    "Qatar": ["Doha", "Qatari Riyal", "Arabic"], "Bahrain": ["Manama", "Bahraini Dinar", "Arabic"], "Oman": ["Muscat", "Omani Rial", "Arabic"],
+    "Turkmenistan": ["Ashgabat", "Manat", "Turkmen"], "Kyrgyzstan": ["Bishkek", "Som", "Kyrgyz & Russian"], "Tajikistan": ["Dushanbe", "Somoni", "Tajik"],
+    "Hong Kong": ["—", "Hong Kong Dollar", "Cantonese & English"], "Macau": ["—", "Macanese Pataca", "Cantonese & Portuguese"], "Brunei": ["Bandar Seri Begawan", "Brunei Dollar", "Malay"],
+    "North Korea": ["Pyongyang", "North Korean Won", "Korean"], "Libya": ["Tripoli", "Libyan Dinar", "Arabic"], "Mali": ["Bamako", "West African CFA franc", "French"],
+    "Burkina Faso": ["Ouagadougou", "West African CFA franc", "French"], "Niger": ["Niamey", "West African CFA franc", "French"], "Chad": ["N'Djamena", "Central African CFA franc", "French & Arabic"],
+    "Mauritania": ["Nouakchott", "Ouguiya", "Arabic"], "Somalia": ["Mogadishu", "Somali Shilling", "Somali & Arabic"], "Eritrea": ["Asmara", "Nakfa", "Tigrinya & Arabic"],
+    "Rwanda": ["Kigali", "Rwandan Franc", "Kinyarwanda, French & English"], "Zambia": ["Lusaka", "Zambian Kwacha", "English"], "Malawi": ["Lilongwe", "Malawian Kwacha", "English & Chichewa"],
+    "Mozambique": ["Maputo", "Metical", "Portuguese"], "Botswana": ["Gaborone", "Pula", "English & Setswana"], "Namibia": ["Windhoek", "Namibian Dollar", "English"],
+    "Benin": ["Porto-Novo", "West African CFA franc", "French"], "Togo": ["Lomé", "West African CFA franc", "French"], "Sierra Leone": ["Freetown", "Leone", "English"],
+    "Liberia": ["Monrovia", "Liberian Dollar", "English"], "Gabon": ["Libreville", "Central African CFA franc", "French"], "Gambia": ["Banjul", "Dalasi", "English"],
+    "Cape Verde": ["Praia", "Cape Verdean Escudo", "Portuguese"], "Mauritius": ["Port Louis", "Mauritian Rupee", "English, French & Creole"], "Seychelles": ["Victoria", "Seychellois Rupee", "Creole, English & French"],
+    "Honduras": ["Tegucigalpa", "Lempira", "Spanish"], "Nicaragua": ["Managua", "Córdoba", "Spanish"], "Belize": ["Belmopan", "Belize Dollar", "English"],
+    "Guyana": ["Georgetown", "Guyanese Dollar", "English"], "Suriname": ["Paramaribo", "Surinamese Dollar", "Dutch"], "Barbados": ["Bridgetown", "Barbadian Dollar", "English"],
+    "Bahamas": ["Nassau", "Bahamian Dollar", "English"], "Grenada": ["St. George's", "East Caribbean Dollar", "English"], "Saint Lucia": ["Castries", "East Caribbean Dollar", "English"],
+    "Antigua and Barbuda": ["St. John's", "East Caribbean Dollar", "English"], "Dominica": ["Roseau", "East Caribbean Dollar", "English"], "Papua New Guinea": ["Port Moresby", "Kina", "English & Tok Pisin"],
+    "Samoa": ["Apia", "Tālā", "Samoan & English"], "Tonga": ["Nukuʻalofa", "Paʻanga", "Tongan & English"], "Vanuatu": ["Port Vila", "Vatu", "Bislama, English & French"],
+    "Equatorial Guinea": ["Malabo", "Central African CFA franc", "Spanish, French & Portuguese"], "Djibouti": ["Djibouti City", "Djiboutian Franc", "French & Arabic"], "Comoros": ["Moroni", "Comorian Franc", "Comorian, Arabic & French"],
+    "Guinea-Bissau": ["Bissau", "West African CFA franc", "Portuguese"], "Guinea": ["Conakry", "Guinean Franc", "French"], "Central African Republic": ["Bangui", "Central African CFA franc", "French & Sango"],
+    "Republic of the Congo": ["Brazzaville", "Central African CFA franc", "French"], "Burundi": ["Gitega", "Burundian Franc", "Kirundi, French & English"], "South Sudan": ["Juba", "South Sudanese Pound", "English"],
+    "Lesotho": ["Maseru", "Loti", "Sesotho & English"], "Eswatini": ["Mbabane", "Lilangeni", "Swazi & English"], "São Tomé and Príncipe": ["São Tomé", "Dobra", "Portuguese"],
+    "Timor-Leste": ["Dili", "US Dollar", "Tetum & Portuguese"], "Saint Kitts and Nevis": ["Basseterre", "East Caribbean Dollar", "English"], "Saint Vincent and the Grenadines": ["Kingstown", "East Caribbean Dollar", "English"],
+    "Kiribati": ["Tarawa", "Australian Dollar", "Gilbertese & English"], "Nauru": ["Yaren", "Australian Dollar", "Nauruan & English"], "Tuvalu": ["Funafuti", "Australian Dollar", "Tuvaluan & English"],
+    "Palau": ["Ngerulmud", "US Dollar", "Palauan & English"], "Marshall Islands": ["Majuro", "US Dollar", "Marshallese & English"], "Micronesia": ["Palikir", "US Dollar", "English"],
+    "Solomon Islands": ["Honiara", "Solomon Islands Dollar", "English"],
+  };
+
+  // Regions in the list that aren't fully sovereign UN member states; shown with
+  // a status note and excluded from the world rankings.
+  const NON_SOVEREIGN = {
+    "Hong Kong": "Special Administrative Region of China",
+    "Macau": "Special Administrative Region of China",
+    "Taiwan": "Self-governed; claimed by China",
+    "Palestine": "Partially recognized state (UN observer)",
+    "Puerto Rico": "Unincorporated territory of the USA",
+    "Kosovo": "Partially recognized state",
+  };
+
   // Precompute world rankings (1 = biggest) from the stats we have.
   const AREA_RANK = {}, POP_RANK = {};
-  Object.keys(STATS).slice().sort((a, b) => STATS[b][1] - STATS[a][1]).forEach((n, i) => { AREA_RANK[n] = i + 1; });
-  Object.keys(STATS).slice().sort((a, b) => STATS[b][0] - STATS[a][0]).forEach((n, i) => { POP_RANK[n] = i + 1; });
+  const SOVEREIGN = Object.keys(STATS).filter((n) => !NON_SOVEREIGN[n]);
+  SOVEREIGN.slice().sort((a, b) => STATS[b][1] - STATS[a][1]).forEach((n, i) => { AREA_RANK[n] = i + 1; });
+  SOVEREIGN.slice().sort((a, b) => STATS[b][0] - STATS[a][0]).forEach((n, i) => { POP_RANK[n] = i + 1; });
 
   function ordinal(n) {
     const s = ["th", "st", "nd", "rd"], v = n % 100;
@@ -756,16 +871,32 @@
     return n.toLocaleString("en-US");
   }
   // A short stats line: population (+rank) and area (+rank).
+  // Status note + population/area (with sovereign-only rankings) + capital,
+  // currency and language facts.
   function statsHtml(info) {
+    const status = NON_SOVEREIGN[info.country];
     const s = STATS[info.country];
-    if (!s) return "";
-    const [pop, area] = s;
-    return (
-      `<p class="country-stats">` +
-        `👥 ${formatPop(pop)} <span class="stat-rank">(${ordinal(POP_RANK[info.country])} most populous)</span>` +
-        ` &nbsp;·&nbsp; 🗺️ ${formatArea(area)} km² <span class="stat-rank">(${ordinal(AREA_RANK[info.country])} largest)</span>` +
-      `</p>`
-    );
+    const f = FACTS[info.country];
+    let html = "";
+
+    if (status) {
+      html += `<p class="country-status">ⓘ ${escapeHtml(status)}</p>`;
+    }
+    if (s) {
+      const [pop, area] = s;
+      const popR = POP_RANK[info.country]
+        ? ` <span class="stat-rank">(${ordinal(POP_RANK[info.country])} most populous)</span>` : "";
+      const areaR = AREA_RANK[info.country]
+        ? ` <span class="stat-rank">(${ordinal(AREA_RANK[info.country])} largest)</span>` : "";
+      html += `<p class="country-stats">👥 ${formatPop(pop)}${popR}` +
+        ` &nbsp;·&nbsp; 🗺️ ${formatArea(area)} km²${areaR}</p>`;
+    }
+    if (f) {
+      const [cap, cur, lang] = f;
+      html += `<p class="country-facts">` +
+        `🏙️ ${escapeHtml(cap)} &nbsp;·&nbsp; 💰 ${escapeHtml(cur)} &nbsp;·&nbsp; 🗣️ ${escapeHtml(lang)}</p>`;
+    }
+    return html;
   }
 
   // Countries already shown this session, so the random picker never repeats one

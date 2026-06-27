@@ -13,8 +13,10 @@ you company during the search.
   repeats one until you've travelled through all of them.
 - 🎲 **Random or pick** — hit the button for a random country, or choose any of
   the 199 from the dropdown.
-- 📊 **Country facts** — each country shows its population and area (km²) plus
-  world rankings (e.g. "4th largest", "9th most populous").
+- 📊 **Country facts** — each country shows its capital, currency, primary
+  language(s), population and area (km²), plus world rankings (e.g. "4th
+  largest", "9th most populous"). Non-sovereign regions (e.g. Hong Kong,
+  Puerto Rico) are labelled as such and left out of the rankings.
 - 🧭 **Running count** — tracks how many of the 199 countries you've explored.
 - ◀ ▶ **Browse your history** — arrows on either side of the country let you
   step back and forward through the countries you've discovered this session.
