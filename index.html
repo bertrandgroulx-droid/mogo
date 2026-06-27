@@ -497,16 +497,37 @@
     return res.json();
   }
 
-  // Attach a short "kind of food" hint to each TheMealDB meal by looking up its
-  // category. Best-effort and in parallel; failures just leave the hint blank.
-  async function enrichCategories(meals) {
+  // Join words as "a", "a & b", or "a, b & c".
+  function listJoin(items) {
+    if (items.length <= 1) return items.join("");
+    return items.slice(0, -1).join(", ") + " & " + items[items.length - 1];
+  }
+
+  // Attach a short "kind of food" hint to each TheMealDB meal by looking it up and
+  // combining its category with its main ingredients (e.g. "seafood with prawns &
+  // garlic"). Best-effort and in parallel; failures just leave the hint blank.
+  async function enrichDescriptions(meals) {
     await Promise.all(meals.map(async (m) => {
       try {
         const data = await getJSON(
           "https://www.themealdb.com/api/json/v1/1/lookup.php?i=" + encodeURIComponent(m.idMeal)
         );
         const full = data.meals && data.meals[0];
-        if (full && full.strCategory) m.desc = full.strCategory;
+        if (!full) return;
+
+        const category = (full.strCategory || "").trim().toLowerCase();
+        const ingredients = [];
+        for (let i = 1; i <= 20 && ingredients.length < 3; i++) {
+          const ing = (full["strIngredient" + i] || "").trim().toLowerCase();
+          // Skip blanks and anything that just repeats the category (e.g. "chicken").
+          if (ing && ing !== category) ingredients.push(ing);
+        }
+
+        let desc = category;
+        if (ingredients.length) {
+          desc = (category ? category + " with " : "") + listJoin(ingredients);
+        }
+        if (desc) m.desc = desc;
       } catch (_) {
         /* leave m.desc undefined */
       }
@@ -546,7 +567,7 @@
           "https://www.themealdb.com/api/json/v1/1/filter.php?a=" + encodeURIComponent(country.area)
         );
         dishes = (dishData.meals || []).slice(0, 6);
-        await enrichCategories(dishes);
+        await enrichDescriptions(dishes);
       } catch (_) {
         // API unavailable — we'll fall back to the curated dishes below.
       }
@@ -647,7 +668,7 @@
           `<img class="dish-thumb" src="${d.strMealThumb}" alt="${escapeHtml(d.strMeal)}" loading="lazy" />` +
           `<div class="dish-body">` +
             `<div class="dish-name">${escapeHtml(d.strMeal)}</div>` +
-            (d.desc ? `<div class="dish-desc">(${escapeHtml(d.desc.toLowerCase())})</div>` : "") +
+            (d.desc ? `<div class="dish-desc">(${escapeHtml(d.desc)})</div>` : "") +
             `<div class="dish-link">View recipe →</div>` +
           `</div>` +
         `</a>`
