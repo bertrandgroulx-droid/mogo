@@ -52,14 +52,26 @@
     50%      { transform: translateY(-8px) rotate(4deg); }
   }
   .logo-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.04em;
     font-size: 3.4rem;
     font-weight: 900;
-    letter-spacing: -1px;
+    letter-spacing: 1px;
     background: linear-gradient(90deg, var(--accent), var(--leaf), var(--accent-2));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     text-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+  /* Globes standing in for the two O's, each bobbing like the lead globe. */
+  .logo-o {
+    display: inline-block;
+    font-size: 0.86em;
+    /* render the emoji in full colour instead of the gradient text fill */
+    -webkit-text-fill-color: initial;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
+    animation: bob 3s ease-in-out infinite;
   }
   .tagline {
     margin: 0.25rem 0 2rem;
@@ -119,7 +131,7 @@
       inset -14px -10px 28px rgba(0, 0, 0, 0.55),
       inset 10px 8px 22px rgba(255, 255, 255, 0.25),
       0 8px 24px rgba(0, 0, 0, 0.4);
-    animation: spin-surface 4s linear infinite;
+    animation: spin-surface 3s linear infinite;
   }
   /* Glossy highlight to sell the sphere */
   .earth::after {
@@ -135,30 +147,37 @@
     to   { background-position: -200% 50%; }
   }
 
-  /* Vegetables "run" around the top of the globe on an orbit */
-  .veg-orbit {
+  /* A pack of vegetables runs in place across the top of the globe. The surface
+     scrolls beneath them like a treadmill, so it reads as if their running is
+     what spins the globe. They lean left, matching the surface's scroll. */
+  .runners {
     position: absolute;
-    inset: 0;
-    animation: orbit 5s linear infinite;
-  }
-  .veg-orbit.reverse { animation-direction: reverse; animation-duration: 7s; }
-  .veg {
-    position: absolute;
-    top: -6px;
+    top: 2px;
     left: 50%;
-    font-size: 1.5rem;
     transform: translateX(-50%);
-    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.4));
-    /* counter-rotate so each veg stays upright while "running" along the top */
-    animation: hop 0.6s ease-in-out infinite;
+    display: flex;
+    align-items: flex-start;
+    gap: 1px;
+    z-index: 2;
+    pointer-events: none;
   }
-  @keyframes orbit {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
+  /* Arch the pack along the dome so they sit on the curved crest. */
+  .runners .veg:nth-child(1) { margin-top: 12px; }
+  .runners .veg:nth-child(2) { margin-top: 2px; }
+  .runners .veg:nth-child(3) { margin-top: 2px; }
+  .runners .veg:nth-child(4) { margin-top: 12px; }
+  .veg {
+    font-size: 1.3rem;
+    line-height: 1;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+    transform-origin: 50% 95%;
+    animation: run 0.45s ease-in-out infinite;
   }
-  @keyframes hop {
-    0%, 100% { transform: translateX(-50%) translateY(0); }
-    50%      { transform: translateX(-50%) translateY(-5px); }
+  /* A running gait: push down to "grip" the surface, then lift and lean forward. */
+  @keyframes run {
+    0%   { transform: translateY(1px)  rotate(-20deg); }
+    50%  { transform: translateY(-7px) rotate(-2deg); }
+    100% { transform: translateY(1px)  rotate(-20deg); }
   }
 
   .loader-text {
@@ -299,7 +318,7 @@
 <body>
   <header class="logo">
     <span class="logo-mark" aria-hidden="true">🌍</span>
-    <span class="logo-text">Mogo</span>
+    <span class="logo-text" aria-label="MOGO">M<span class="logo-o" style="animation-delay: -1s">🌍</span>G<span class="logo-o" style="animation-delay: -2s">🌍</span></span>
   </header>
   <p class="tagline">Press the button. Spin the globe. Cook the world.</p>
 
@@ -309,17 +328,11 @@
   <div id="loader" class="loader" aria-hidden="true">
     <div class="earth-scene">
       <div class="earth"></div>
-      <div class="veg-orbit">
-        <span class="veg" style="animation-delay: 0s">🥕</span>
-      </div>
-      <div class="veg-orbit reverse" style="animation-delay: -1s">
-        <span class="veg" style="animation-delay: -.2s">🥦</span>
-      </div>
-      <div class="veg-orbit" style="animation-delay: -2.5s">
-        <span class="veg" style="animation-delay: -.4s">🍅</span>
-      </div>
-      <div class="veg-orbit reverse" style="animation-delay: -3.5s">
-        <span class="veg" style="animation-delay: -.1s">🌽</span>
+      <div class="runners">
+        <span class="veg" style="animation-delay: -0.05s">🥕</span>
+        <span class="veg" style="animation-delay: -0.20s">🥦</span>
+        <span class="veg" style="animation-delay: -0.32s">🍅</span>
+        <span class="veg" style="animation-delay: -0.12s">🌽</span>
       </div>
     </div>
     <div id="loaderText" class="loader-text">Spinning the globe…</div>
