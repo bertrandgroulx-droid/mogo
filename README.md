@@ -27,7 +27,10 @@ you company during the search.
   for every country guarantees options, with photo cards and full recipe links
   pulled from the free [TheMealDB](https://www.themealdb.com) API where available.
 - 🌍 **Spinning-Earth loader** — a CSS-animated globe with carrots, broccoli,
-  tomatoes, and corn orbiting across the top while results load.
+  tomatoes, and corn running across the top while results load.
+- 🔊 **Silly "Mogo!" voice** — pressing the random button speaks "Mogo" in a
+  random caveman / toddler / minion / computer voice (via the browser's speech
+  synthesis). A 🔊 toggle mutes it.
 - 📱 **Responsive & self-contained** — a single `index.html`, no build step,
   no dependencies.
 

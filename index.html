@@ -91,6 +91,26 @@
   .discover-btn:active { transform: translateY(0); }
   .discover-btn:disabled { cursor: not-allowed; opacity: 0.55; transform: none; box-shadow: none; }
 
+  /* ---------- Sound toggle ---------- */
+  .sound-toggle {
+    position: fixed;
+    top: 10px;
+    right: 12px;
+    z-index: 10;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1px solid var(--card-border);
+    background: var(--card);
+    color: var(--text);
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  }
+  .sound-toggle:hover { transform: scale(1.08); border-color: var(--accent); }
+  .sound-toggle.muted { opacity: 0.55; }
+
   /* ---------- Controls (country picker + filter) ---------- */
   .controls {
     margin-top: 1rem;
@@ -429,6 +449,7 @@
 </style>
 </head>
 <body>
+  <button id="soundToggle" class="sound-toggle" title="Toggle the 'Mogo!' voice" aria-label="Toggle sound">🔊</button>
   <header class="logo">
     <span class="logo-text" aria-label="mogo">m<span class="logo-o" style="animation-delay: -1s">🌍</span>g<span class="logo-o" style="animation-delay: -2s">🌍</span></span>
   </header>
@@ -1078,7 +1099,35 @@
   }
 
   // Random discovery (respects the no-repeat cycle).
+  // Randomly say "Mogo!" in one of four silly voices (browser speech synthesis).
+  const MOGO_VOICES = [
+    { id: "caveman",  text: "Mooogo!",       pitch: 0.2, rate: 0.7 },
+    { id: "toddler",  text: "Mogo! Mogo!",   pitch: 1.7, rate: 1.2 },
+    { id: "minion",   text: "Mogooo!",       pitch: 2.0, rate: 1.5 },
+    { id: "computer", text: "Mo. Go.",       pitch: 0.85, rate: 0.8, robotic: true },
+  ];
+  let soundOn = localStorage.getItem("mogoSound") !== "off";
+
+  function speakMogo() {
+    if (!soundOn || !("speechSynthesis" in window)) return;
+    try {
+      const v = MOGO_VOICES[Math.floor(Math.random() * MOGO_VOICES.length)];
+      window.speechSynthesis.cancel(); // avoid overlap if pressed quickly
+      const u = new SpeechSynthesisUtterance(v.text);
+      u.pitch = v.pitch;
+      u.rate = v.rate;
+      u.volume = 1;
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length && v.robotic) {
+        const robo = voices.find((x) => /Zarvox|Trinoids|eSpeak|Google|robot|Microsoft/i.test(x.name));
+        if (robo) u.voice = robo;
+      }
+      window.speechSynthesis.speak(u);
+    } catch (_) { /* speech not available — stay silent */ }
+  }
+
   async function discover() {
+    speakMogo();
     const { country, justReset } = pickCountry();
     const note = justReset
       ? "🌍 You've explored every country — starting a fresh trip around the globe!"
@@ -1287,6 +1336,23 @@
     countryPicker.value = ""; // reset to placeholder
     if (name) goToCountry(name);
   });
+
+  // Sound on/off toggle (persisted).
+  const soundToggle = document.getElementById("soundToggle");
+  function refreshSoundToggle() {
+    soundToggle.textContent = soundOn ? "🔊" : "🔇";
+    soundToggle.classList.toggle("muted", !soundOn);
+  }
+  soundToggle.addEventListener("click", () => {
+    soundOn = !soundOn;
+    localStorage.setItem("mogoSound", soundOn ? "on" : "off");
+    refreshSoundToggle();
+    if (soundOn) speakMogo(); // little preview when switching on
+  });
+  refreshSoundToggle();
+
+  // Some browsers load speech voices asynchronously.
+  if ("speechSynthesis" in window) window.speechSynthesis.getVoices();
 
   updateProgress();
 })();
