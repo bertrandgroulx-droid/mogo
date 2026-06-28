@@ -1098,34 +1098,23 @@
     updateProgress();
   }
 
-  // Random discovery (respects the no-repeat cycle).
-  // Randomly say "Mogo!" in one of four silly voices (browser speech synthesis).
-  const MOGO_VOICES = [
-    { id: "caveman",  text: "Mooogo!",       pitch: 0.2, rate: 0.7 },
-    { id: "toddler",  text: "Mogo! Mogo!",   pitch: 1.7, rate: 1.2 },
-    { id: "minion",   text: "Mogooo!",       pitch: 2.0, rate: 1.5 },
-    { id: "computer", text: "Mo. Go.",       pitch: 0.85, rate: 0.8, robotic: true },
-  ];
+  // Grunt "Mow go!" like a caveman via browser speech synthesis. "Mow" is spelled
+  // so it reads with a long O (rhyming with "go"), not a cow's "moo".
   let soundOn = localStorage.getItem("mogoSound") !== "off";
 
   function speakMogo() {
     if (!soundOn || !("speechSynthesis" in window)) return;
     try {
-      const v = MOGO_VOICES[Math.floor(Math.random() * MOGO_VOICES.length)];
       window.speechSynthesis.cancel(); // avoid overlap if pressed quickly
-      const u = new SpeechSynthesisUtterance(v.text);
-      u.pitch = v.pitch;
-      u.rate = v.rate;
+      const u = new SpeechSynthesisUtterance("Mow go!");
+      u.pitch = 0.2; // deep, caveman-low
+      u.rate = 0.7;  // slow and emphatic
       u.volume = 1;
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length && v.robotic) {
-        const robo = voices.find((x) => /Zarvox|Trinoids|eSpeak|Google|robot|Microsoft/i.test(x.name));
-        if (robo) u.voice = robo;
-      }
       window.speechSynthesis.speak(u);
     } catch (_) { /* speech not available — stay silent */ }
   }
 
+  // Random discovery (respects the no-repeat cycle).
   async function discover() {
     speakMogo();
     const { country, justReset } = pickCountry();
