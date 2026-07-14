@@ -70,3 +70,16 @@ themed categories — superpowers with a catch, kitchen objects with feelings,
 fantasy creatures, cosmic phenomena, and more. Same rules as Mogo: single
 file, no build step, no dependencies. Open it directly or serve it alongside
 `index.html`.
+
+## Deploying with GitHub Pages
+
+This repo ships a GitHub Actions workflow (`.github/workflows/pages.yml`) that
+deploys the site on every push to `main`. Set **Settings → Pages → Build and
+deployment → Source** to **GitHub Actions** (one time, or it self-enables on
+first deploy). Once deployed:
+
+- Mogo: `https://<your-username>.github.io/mogo/`
+- Would You Rather: `https://<your-username>.github.io/mogo/would-you-rather.html`
+
+On iPhone/Android, open either URL in Safari/Chrome, then use **Share → Add to
+Home Screen** to install it as a full-screen, app-like icon.
