@@ -59,3 +59,14 @@ python3 -m http.server 8000
    linking to each full recipe.
 
 No API key required.
+
+## Bonus: Would You Rather?
+
+Also in this repo: [`would-you-rather.html`](would-you-rather.html), a
+one-button whimsical dilemma generator. Each press serves up two impossible,
+weirdly-linked options ("Would you rather be a cloud that only rains during
+weddings, or a rainbow that only appears during arguments?") drawn from
+themed categories — superpowers with a catch, kitchen objects with feelings,
+fantasy creatures, cosmic phenomena, and more. Same rules as Mogo: single
+file, no build step, no dependencies. Open it directly or serve it alongside
+`index.html`.

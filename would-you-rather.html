@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Would You Rather? — a whimsical dilemma generator</title>
+<meta name="description" content="Press the button. Get whimsically stuck between two impossible, weirdly-linked options.">
+<style>
+  :root{
+    --bg1:#ffd6e8;
+    --bg2:#c8e7ff;
+    --bg3:#fff3c4;
+    --ink:#2b2140;
+    --card:#ffffff;
+    --accent:#7c5cff;
+    --accent2:#ff6f91;
+    --shadow:0 12px 30px rgba(60,30,90,.18);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    font-family:"Segoe UI", system-ui, -apple-system, Helvetica, Arial, sans-serif;
+    color:var(--ink);
+    background:linear-gradient(120deg,var(--bg1),var(--bg2) 50%,var(--bg3));
+    background-size:220% 220%;
+    animation:drift 18s ease-in-out infinite;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:28px 16px 60px;
+    position:relative;
+    overflow-x:hidden;
+  }
+  @keyframes drift{
+    0%{background-position:0% 30%;}
+    50%{background-position:100% 70%;}
+    100%{background-position:0% 30%;}
+  }
+
+  .sparkle{
+    position:fixed;
+    font-size:22px;
+    opacity:.55;
+    pointer-events:none;
+    animation:float 9s ease-in-out infinite;
+    filter:drop-shadow(0 4px 6px rgba(0,0,0,.08));
+  }
+  @keyframes float{
+    0%,100%{transform:translateY(0) rotate(0deg);}
+    50%{transform:translateY(-26px) rotate(12deg);}
+  }
+
+  header{
+    text-align:center;
+    max-width:640px;
+    z-index:1;
+  }
+  h1{
+    font-size:clamp(2rem,6vw,2.9rem);
+    margin:6px 0 4px;
+    letter-spacing:-.5px;
+  }
+  h1 .q{
+    display:inline-block;
+    animation:wiggle 3.2s ease-in-out infinite;
+  }
+  @keyframes wiggle{
+    0%,100%{transform:rotate(0deg);}
+    25%{transform:rotate(-8deg);}
+    75%{transform:rotate(8deg);}
+  }
+  .tagline{
+    margin:0 0 6px;
+    font-size:1.02rem;
+    opacity:.78;
+  }
+
+  .stats{
+    display:flex;
+    gap:14px;
+    justify-content:center;
+    flex-wrap:wrap;
+    font-size:.85rem;
+    opacity:.75;
+    margin:6px 0 18px;
+  }
+  .stats span strong{color:var(--accent);}
+
+  .controls{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+    justify-content:center;
+    margin-bottom:22px;
+    z-index:1;
+  }
+
+  select, .icon-btn{
+    font-family:inherit;
+    font-size:.95rem;
+    border:none;
+    border-radius:999px;
+    padding:10px 16px;
+    background:var(--card);
+    box-shadow:var(--shadow);
+    cursor:pointer;
+    color:var(--ink);
+  }
+  .icon-btn{
+    padding:10px 12px;
+    font-size:1.05rem;
+    line-height:1;
+  }
+  .icon-btn[aria-pressed="true"]{
+    background:var(--accent);
+    color:#fff;
+  }
+
+  .roll-btn{
+    font-family:inherit;
+    font-weight:700;
+    font-size:1.2rem;
+    color:#fff;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    border:none;
+    border-radius:999px;
+    padding:18px 40px;
+    box-shadow:0 14px 28px rgba(124,92,255,.35);
+    cursor:pointer;
+    transition:transform .15s ease, box-shadow .15s ease;
+    z-index:1;
+  }
+  .roll-btn:hover{transform:translateY(-2px);}
+  .roll-btn:active{transform:translateY(1px) scale(.98);}
+  .roll-btn:disabled{opacity:.7;cursor:default;transform:none;}
+
+  main{
+    width:100%;
+    max-width:760px;
+    z-index:1;
+    margin-top:26px;
+  }
+
+  .theme-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    margin:0 auto 14px;
+    background:var(--card);
+    box-shadow:var(--shadow);
+    border-radius:999px;
+    padding:6px 16px;
+    font-size:.85rem;
+    font-weight:600;
+    color:var(--accent);
+    opacity:0;
+    transition:opacity .3s ease;
+  }
+  .theme-chip.show{opacity:1;}
+  .chip-wrap{display:flex;justify-content:center;}
+
+  .dilemma{
+    display:flex;
+    align-items:stretch;
+    gap:0;
+    position:relative;
+  }
+  @media (max-width:640px){
+    .dilemma{flex-direction:column;gap:14px;}
+  }
+
+  .option{
+    flex:1;
+    background:var(--card);
+    border-radius:22px;
+    padding:26px 22px;
+    box-shadow:var(--shadow);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    font-size:1.15rem;
+    font-weight:600;
+    line-height:1.4;
+    cursor:pointer;
+    border:3px solid transparent;
+    transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    min-height:150px;
+    opacity:0;
+    transform:translateY(14px) scale(.98);
+  }
+  .option.reveal{
+    opacity:1;
+    transform:translateY(0) scale(1);
+  }
+  .option:hover{transform:translateY(-3px);}
+  .option.picked{
+    border-color:var(--accent);
+    background:linear-gradient(160deg,#fff,#f2edff);
+  }
+  .option.faded{opacity:.55 !important;}
+  .option .label{
+    position:absolute;
+    top:10px;
+    left:14px;
+    font-size:.7rem;
+    font-weight:800;
+    letter-spacing:1px;
+    color:var(--accent2);
+    opacity:.7;
+  }
+  .option{position:relative;}
+  .pick-tag{
+    display:block;
+    margin-top:10px;
+    font-size:.72rem;
+    font-weight:700;
+    color:var(--accent);
+    letter-spacing:.4px;
+  }
+
+  .or-divider{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:800;
+    font-size:.95rem;
+    color:#fff;
+    background:var(--ink);
+    width:46px;
+    height:46px;
+    border-radius:50%;
+    margin:auto -23px;
+    z-index:2;
+    box-shadow:var(--shadow);
+    flex-shrink:0;
+  }
+  @media (max-width:640px){
+    .or-divider{margin:-25px auto;}
+  }
+
+  .placeholder{
+    text-align:center;
+    opacity:.6;
+    padding:50px 20px;
+    font-size:1.05rem;
+  }
+
+  .history-nav{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    margin-top:20px;
+    opacity:0;
+    transition:opacity .3s ease;
+  }
+  .history-nav.show{opacity:1;}
+  .history-nav button{
+    background:var(--card);
+    border:none;
+    border-radius:50%;
+    width:38px;
+    height:38px;
+    box-shadow:var(--shadow);
+    cursor:pointer;
+    font-size:1rem;
+  }
+  .history-nav button:disabled{opacity:.35;cursor:default;}
+  .history-nav .pos{font-size:.85rem;opacity:.7;}
+
+  footer{
+    margin-top:44px;
+    font-size:.78rem;
+    opacity:.55;
+    text-align:center;
+    z-index:1;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="q">🤔</span> Would You Rather?</h1>
+  <p class="tagline">Press the button. Get whimsically stuck between two impossible, weirdly-linked options.</p>
+  <div class="stats">
+    <span>Dilemmas faced: <strong id="statSeen">0</strong></span>
+    <span>Team A: <strong id="statA">0</strong></span>
+    <span>Team B: <strong id="statB">0</strong></span>
+  </div>
+</header>
+
+<div class="controls">
+  <select id="themeSelect" aria-label="Category">
+    <option value="">🎲 Any category</option>
+  </select>
+  <button class="icon-btn" id="voiceToggle" title="Read dilemmas aloud" aria-pressed="false">🔊</button>
+</div>
+
+<button class="roll-btn" id="rollBtn">✨ Give Me a Dilemma</button>
+
+<main>
+  <div class="chip-wrap"><div class="theme-chip" id="themeChip"></div></div>
+  <div class="dilemma" id="dilemma">
+    <div class="placeholder">Your first impossible choice is one press away.</div>
+  </div>
+  <div class="history-nav" id="historyNav">
+    <button id="prevBtn" title="Previous dilemma">◀</button>
+    <span class="pos" id="historyPos"></span>
+    <button id="nextBtn" title="Next dilemma">▶</button>
+  </div>
+</main>
+
+<footer>Self-contained, no build step, no server. Refresh for a clean slate — your tally lives in this browser only.</footer>
+
+<script>
+(function(){
+
+  // Each theme is a set of thematically-linked whimsical options.
+  // Any two items picked from the same theme are "somehow linked" by that thread.
+  const THEMES = [
+    { id:'powers', emoji:'🦸', label:'Superpowers (with a catch)', items:[
+      "a superhero whose powers only work when nobody's watching",
+      "a mind reader who can only hear people's grocery lists",
+      "a shapeshifter who can only turn into inanimate objects",
+      "a time traveler who can only go back exactly twelve seconds",
+      "an invisible person whose shadow is still fully visible",
+      "a super-strong hero who can only lift things nobody needed lifted",
+      "a teleporter who always lands one foot to the left of where you aimed",
+      "a flying superhero who's terrified of heights",
+      "a fire-breather who can only produce mildly warm breath",
+      "a super-speedster who's somehow still ten minutes late",
+      "a telekinetic who can only move socks",
+      "an immortal who ages backwards, but only on leap years",
+    ]},
+    { id:'weather', emoji:'🌩️', label:'Weather & Sky', items:[
+      "a cloud that only rains during weddings",
+      "a rainbow that appears exclusively during arguments",
+      "a lightning bolt that gently strikes the same tree, forever",
+      "a snowflake that never quite finishes falling",
+      "a breeze that reverses direction every time someone sneezes",
+      "a thunderstorm that only produces polite, apologetic thunder",
+      "a sunbeam that follows one specific houseplant everywhere",
+      "a fog bank that only rolls in during important speeches",
+      "a hurricane that spins so slowly it's basically a nice swirl",
+      "a shooting star that grants wishes, but only for parking spots",
+      "the last cloud of summer, forever almost raining",
+      "the northern lights, but only visible from one particular bathtub",
+    ]},
+    { id:'kitchen', emoji:'🍞', label:'Kitchen, Personified', items:[
+      "a piece of toast that always lands butter-side up, out of spite",
+      "a teapot that whistles show tunes",
+      "a fridge light that stays on even with the door closed, judging you",
+      "a block of cheese that ages into wisdom instead of mold",
+      "an ice cube that never fully melts, just gets philosophical",
+      "a pot of coffee that's always exactly one degree too hot",
+      "a banana that ripens at the speed of plot convenience",
+      "a jar of pickles that gossips",
+      "a sourdough starter with abandonment issues",
+      "a spice rack that alphabetizes itself out of anxiety",
+      "the last slice of pizza, eternally being offered around a table",
+      "a can of soup that's sentient, but only during microwave hours",
+    ]},
+    { id:'time', emoji:'⏳', label:'Time & Ages', items:[
+      "eleven years old forever, reliving the same summer",
+      "ninety years old with the energy of a caffeinated toddler",
+      "a Tuesday that repeats until someone finally does the dishes",
+      "the five minutes before a nap, stretched into infinity",
+      "a New Year's Eve that never quite reaches midnight",
+      "the moment right after a good haircut, forever",
+      "your last day of school, on a loop, mildly nostalgic",
+      "a countdown that always gets stuck at three",
+      "the drowsy hour after a big meal, contentedly frozen",
+      "a birthday that only you remember is happening",
+      "the pause right before someone says 'I have an announcement'",
+      "a Sunday evening that lasts exactly one extra hour, always",
+    ]},
+    { id:'size', emoji:'📏', label:'Sizes & Scale', items:[
+      "the size of a teacup, but strong enough to move furniture",
+      "as tall as a lighthouse, but light enough to float away in a breeze",
+      "small enough to live in a matchbox, with matchbox-sized problems",
+      "big enough to hug a building, gentle enough not to",
+      "the size of a grain of rice with the ego of a mountain",
+      "as wide as a doorway, and permanently stuck sideways through them",
+      "tiny enough to nap in a teaspoon",
+      "large enough to personally see weather patterns coming",
+      "exactly one inch shorter than everyone you meet, always",
+      "the size of a golden retriever, in spirit and in stature",
+    ]},
+    { id:'animals', emoji:'🦉', label:'Animals with Quirks', items:[
+      "an owl that's only wise between 2 and 3pm",
+      "a turtle that races everywhere but always politely lets you win",
+      "a cat that only knocks things off shelves it truly respects",
+      "a dog that can talk but only says things you already knew",
+      "a fish with a nine-second memory that's suspiciously accurate",
+      "an octopus that only uses three of its eight arms, out of modesty",
+      "a peacock that molts into a slightly better outfit each season",
+      "a squirrel with a 401k and a five-year acorn plan",
+      "a chameleon that can only turn slightly more beige",
+      "a parrot that only repeats compliments",
+      "a snail that's surprisingly punctual, for a snail",
+      "a bear that hibernates through all your favorite seasons instead",
+    ]},
+    { id:'fantasy', emoji:'🐉', label:'Fantasy Creatures', items:[
+      "a dragon that only breathes toast-warming fire",
+      "a wizard whose spells all wear off after exactly one nap",
+      "a ghost that can only haunt houses it's been formally invited to",
+      "a mermaid who's a phenomenal singer but only knows one song",
+      "a unicorn whose horn dispenses lukewarm tea",
+      "a genie who grants wishes but always slightly misunderstands them",
+      "a troll under a bridge who charges tolls in compliments",
+      "a fairy godmother who's great at everything except timing",
+      "a vampire who's only mildly inconvenienced by sunlight, like a bad glare",
+      "a witch whose cauldron only brews soup — delicious soup",
+      "a giant who's terrified of stairs",
+      "a phoenix that rises from the ashes a little grumpier each time",
+    ]},
+    { id:'objects', emoji:'🗝️', label:'Everyday Objects with Feelings', items:[
+      "a doormat that silently judges everyone who wipes their feet",
+      "an umbrella that only opens when it's not raining",
+      "a pair of scissors that gets nervous before every cut",
+      "a rubber band that remembers every stretch as a small betrayal",
+      "a stapler that's proud of every single staple",
+      "a clock that runs five minutes fast, out of eagerness",
+      "a key that fits every lock except the one it's meant for",
+      "a candle that burns slower when someone's watching",
+      "a pencil that dulls itself out of humility",
+      "a mirror that only shows you on your good days",
+      "a light switch that flickers when it senses a good story starting",
+    ]},
+    { id:'emotions', emoji:'💫', label:'Emotions as States', items:[
+      "permanently on the verge of a really good laugh",
+      "stuck in the cozy five minutes after a good cry",
+      "living in the specific joy of finding money in an old coat",
+      "suspended in the calm right before you remember something you forgot",
+      "always in the mood a warm bakery smells like",
+      "perpetually one task from a completed to-do list, forever",
+      "caught in the nostalgia of a song you can't quite place",
+      "living in the relief of putting down something heavy",
+      "stuck in the anticipation right before a good surprise",
+      "always feeling like the first day of a vacation",
+    ]},
+    { id:'seasons', emoji:'🍂', label:'Seasons', items:[
+      "an autumn leaf that takes the scenic route down",
+      "the first snow of winter, landing on someone who's genuinely delighted",
+      "a spring bud that blooms exactly when it feels ready, no earlier",
+      "a summer evening that lingers twenty extra minutes, just because",
+      "the last warm day of fall, showing off a little",
+      "the quiet hour after spring rain, when everything smells like starting over",
+      "a winter morning where the world is muffled in snow and nobody's in a hurry",
+      "the exact moment leaves start to turn, held indefinitely",
+      "a heatwave that only affects ice cream trucks, in their favor",
+      "the smell of a barbecue three houses down, forever drifting your way",
+    ]},
+    { id:'space', emoji:'🌌', label:'Cosmic & Space', items:[
+      "a star that twinkles specifically in Morse code, saying nice things",
+      "a planet with two suns and a very confused sundial",
+      "a comet that swings by every year just to wave",
+      "a black hole that only swallows bad Wi-Fi signals",
+      "an astronaut who gets homesick for gravity",
+      "a moon that waxes and wanes based on how the week's going",
+      "a satellite that's mostly just up there, people-watching",
+      "a nebula that's slowly, gorgeously, becoming a new idea",
+      "a meteor that always just barely misses, for dramatic effect",
+      "the dark side of the moon, finally getting some attention",
+    ]},
+    { id:'jobs', emoji:'🧭', label:'Jobs with a Twist', items:[
+      "a lighthouse keeper for a lighthouse that's purely decorative",
+      "a librarian for a library where every book is about you",
+      "a mail carrier who only delivers good news",
+      "a tour guide for a museum with just one, incredible exhibit",
+      "a chef who only cooks the one dish they've truly perfected",
+      "a crossing guard for a street no cars actually use",
+      "a night-shift security guard for a building full of houseplants",
+      "a weather forecaster who's suspiciously always right",
+      "an elevator operator for an elevator with only two floors, both nice",
+      "a barista who remembers everyone's order, forever, unprompted",
+    ]},
+    { id:'transport', emoji:'🎈', label:'Transportation', items:[
+      "a hot air balloon that only floats toward good ideas",
+      "a bicycle bell that rings itself when you're about to have a good day",
+      "a train that always arrives exactly when you needed a moment to think",
+      "a rowboat that drifts toward whoever needs a quiet afternoon",
+      "an old car that starts every time, just to spite the mechanic who gave up on it",
+      "a skateboard that only picks up speed downhill toward something fun",
+      "a canoe that paddles itself when you're tired",
+      "a paper airplane that always finds the person it was meant for",
+      "a subway car that's suspiciously always got a seat open for you",
+      "an elevator with a soundtrack that matches your mood exactly",
+    ]},
+    { id:'music', emoji:'🎵', label:'Music & Sound', items:[
+      "a wind chime that only plays on good news",
+      "a violin string that hums the last song you loved",
+      "an echo that comes back slightly kinder than what you said",
+      "a doorbell that plays a different, perfect little tune each time",
+      "a radio that only tunes into the song you needed to hear",
+      "a whistle that only the right person can ever hear",
+      "a drumbeat that matches your footsteps when you're excited",
+      "a hum you can't place but that always makes you feel better",
+      "a lullaby that finishes itself even after you fall asleep",
+      "silence, but the good kind, right after a great song ends",
+    ]},
+    { id:'senses', emoji:'🌈', label:'Colors & Senses', items:[
+      "the color of the sky exactly one minute after sunset",
+      "the smell of rain on a sidewalk that hasn't seen rain in weeks",
+      "the taste of the first bite of something you haven't had since childhood",
+      "the sound of a page turning in an otherwise quiet room",
+      "the feeling of fresh socks",
+      "the specific blue of a really good sky",
+      "the smell of a bookstore you've never been to before",
+      "the sound of rain on a tent, from inside, warm and dry",
+      "the color that only exists in dreams, and that you never quite recall",
+      "the texture of sand that's just the right temperature",
+    ]},
+  ];
+
+  const SPARKLES = ['✨','🌈','🦄','🎈','🌙','⭐','🍀','🌀'];
+  const sparkleWrap = document.body;
+  for(let i=0;i<10;i++){
+    const s = document.createElement('div');
+    s.className='sparkle';
+    s.textContent = SPARKLES[Math.floor(Math.random()*SPARKLES.length)];
+    s.style.left = Math.random()*100+'vw';
+    s.style.top = Math.random()*100+'vh';
+    s.style.animationDelay = (Math.random()*9)+'s';
+    s.style.animationDuration = (7+Math.random()*6)+'s';
+    sparkleWrap.appendChild(s);
+  }
+
+  const themeSelect = document.getElementById('themeSelect');
+  THEMES.forEach(t=>{
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = `${t.emoji} ${t.label}`;
+    themeSelect.appendChild(opt);
+  });
+
+  const rollBtn = document.getElementById('rollBtn');
+  const dilemmaEl = document.getElementById('dilemma');
+  const themeChip = document.getElementById('themeChip');
+  const historyNav = document.getElementById('historyNav');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const historyPos = document.getElementById('historyPos');
+  const voiceToggle = document.getElementById('voiceToggle');
+  const statSeen = document.getElementById('statSeen');
+  const statA = document.getElementById('statA');
+  const statB = document.getElementById('statB');
+
+  const history = [];
+  let cursor = -1;
+  let lastKey = null;
+  let voiceOn = false;
+
+  const stats = loadStats();
+  renderStats();
+
+  function loadStats(){
+    try{
+      const raw = localStorage.getItem('wyr-stats');
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return { seen:0, a:0, b:0 };
+  }
+  function saveStats(){
+    try{ localStorage.setItem('wyr-stats', JSON.stringify(stats)); }catch(e){}
+  }
+  function renderStats(){
+    statSeen.textContent = stats.seen;
+    statA.textContent = stats.a;
+    statB.textContent = stats.b;
+  }
+
+  function pickDilemma(){
+    const chosenId = themeSelect.value;
+    const pool = chosenId ? THEMES.filter(t=>t.id===chosenId) : THEMES;
+    const theme = pool[Math.floor(Math.random()*pool.length)];
+    const items = theme.items;
+
+    let i = Math.floor(Math.random()*items.length);
+    let j = Math.floor(Math.random()*items.length);
+    while(j===i) j = Math.floor(Math.random()*items.length);
+
+    let key = theme.id+'|'+i+'|'+j;
+    // avoid immediately repeating the exact same pair back-to-back
+    let guard = 0;
+    while(key===lastKey && guard<20){
+      i = Math.floor(Math.random()*items.length);
+      j = Math.floor(Math.random()*items.length);
+      while(j===i) j = Math.floor(Math.random()*items.length);
+      key = theme.id+'|'+i+'|'+j;
+      guard++;
+    }
+    lastKey = key;
+
+    return { theme, a: items[i], b: items[j], picked:null };
+  }
+
+  function render(entry){
+    themeChip.textContent = `${entry.theme.emoji} ${entry.theme.label}`;
+    themeChip.classList.add('show');
+
+    dilemmaEl.innerHTML = `
+      <div class="option" id="optA"><span class="label">A</span>${cap(entry.a)}<span class="pick-tag" id="tagA"></span></div>
+      <div class="or-divider">OR</div>
+      <div class="option" id="optB"><span class="label">B</span>${cap(entry.b)}<span class="pick-tag" id="tagB"></span></div>
+    `;
+    requestAnimationFrame(()=>{
+      document.getElementById('optA').classList.add('reveal');
+      setTimeout(()=>document.getElementById('optB').classList.add('reveal'), 90);
+    });
+
+    const optA = document.getElementById('optA');
+    const optB = document.getElementById('optB');
+    applyPickedState(entry, optA, optB);
+    optA.addEventListener('click', ()=>choose(entry,'a'));
+    optB.addEventListener('click', ()=>choose(entry,'b'));
+
+    updateHistoryNav();
+
+    if(voiceOn) speak(`Would you rather be ${entry.a}? Or ${entry.b}?`);
+  }
+
+  function applyPickedState(entry, optA, optB){
+    optA.classList.toggle('picked', entry.picked==='a');
+    optB.classList.toggle('picked', entry.picked==='b');
+    optA.classList.toggle('faded', entry.picked==='b');
+    optB.classList.toggle('faded', entry.picked==='a');
+    document.getElementById('tagA').textContent = entry.picked==='a' ? '✓ your pick' : '';
+    document.getElementById('tagB').textContent = entry.picked==='b' ? '✓ your pick' : '';
+  }
+
+  function choose(entry, side){
+    if(entry.picked) return; // one pick per dilemma
+    entry.picked = side;
+    if(side==='a') stats.a++; else stats.b++;
+    saveStats();
+    renderStats();
+    applyPickedState(entry, document.getElementById('optA'), document.getElementById('optB'));
+  }
+
+  function cap(s){
+    return s.charAt(0).toUpperCase()+s.slice(1);
+  }
+
+  function updateHistoryNav(){
+    if(history.length>1){
+      historyNav.classList.add('show');
+    }
+    prevBtn.disabled = cursor<=0;
+    nextBtn.disabled = cursor>=history.length-1;
+    historyPos.textContent = `${cursor+1} / ${history.length}`;
+  }
+
+  function roll(){
+    const entry = pickDilemma();
+    // trim any forward history if we'd branched off from a back-navigation
+    history.splice(cursor+1);
+    history.push(entry);
+    cursor = history.length-1;
+    stats.seen++;
+    saveStats();
+    renderStats();
+    render(entry);
+  }
+
+  rollBtn.addEventListener('click', roll);
+
+  prevBtn.addEventListener('click', ()=>{
+    if(cursor>0){ cursor--; render(history[cursor]); }
+  });
+  nextBtn.addEventListener('click', ()=>{
+    if(cursor<history.length-1){ cursor++; render(history[cursor]); }
+  });
+
+  voiceToggle.addEventListener('click', ()=>{
+    voiceOn = !voiceOn;
+    voiceToggle.setAttribute('aria-pressed', String(voiceOn));
+    voiceToggle.textContent = voiceOn ? '🔊' : '🔇';
+    if(voiceOn && history[cursor]){
+      const e = history[cursor];
+      speak(`Would you rather be ${e.a}? Or ${e.b}?`);
+    }
+  });
+
+  function speak(text){
+    if(!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.98;
+    u.pitch = 1.05;
+    window.speechSynthesis.speak(u);
+  }
+
+})();
+</script>
+</body>
+</html>
