@@ -7,14 +7,18 @@
 <meta name="description" content="Press the button. Get whimsically stuck between two impossible, weirdly-linked options.">
 <style>
   :root{
-    --bg1:#ffd6e8;
-    --bg2:#c8e7ff;
-    --bg3:#fff3c4;
-    --ink:#2b2140;
-    --card:#ffffff;
-    --accent:#7c5cff;
-    --accent2:#ff6f91;
-    --shadow:0 12px 30px rgba(60,30,90,.18);
+    --bg1:#0b0416;
+    --bg2:#1a0b2e;
+    --bg3:#2c0f3f;
+    --ember:#ff6a3d;
+    --ink:#f2e9ff;
+    --muted:#b6a4d9;
+    --card:rgba(28,15,48,.72);
+    --card-border:rgba(167,139,250,.28);
+    --accent:#ffb454;
+    --accent2:#8b5cf6;
+    --shadow:0 14px 34px rgba(0,0,0,.55);
+    --glow:0 0 22px rgba(255,138,61,.35);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -22,9 +26,13 @@
     min-height:100vh;
     font-family:"Segoe UI", system-ui, -apple-system, Helvetica, Arial, sans-serif;
     color:var(--ink);
-    background:linear-gradient(120deg,var(--bg1),var(--bg2) 50%,var(--bg3));
-    background-size:220% 220%;
-    animation:drift 18s ease-in-out infinite;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% 118%, rgba(255,106,61,.28), transparent 62%),
+      radial-gradient(circle at 18% 8%, rgba(139,92,246,.22), transparent 42%),
+      radial-gradient(circle at 85% 22%, rgba(255,180,84,.10), transparent 38%),
+      linear-gradient(165deg,var(--bg1),var(--bg2) 55%,var(--bg3));
+    background-size:100% 100%, 160% 160%, 160% 160%, 220% 220%;
+    animation:drift 22s ease-in-out infinite;
     display:flex;
     flex-direction:column;
     align-items:center;
@@ -33,22 +41,25 @@
     overflow-x:hidden;
   }
   @keyframes drift{
-    0%{background-position:0% 30%;}
-    50%{background-position:100% 70%;}
-    100%{background-position:0% 30%;}
+    0%{background-position:0% 100%, 0% 30%, 100% 20%, 0% 30%;}
+    50%{background-position:0% 100%, 100% 70%, 0% 60%, 100% 70%;}
+    100%{background-position:0% 100%, 0% 30%, 100% 20%, 0% 30%;}
   }
 
   .sparkle{
     position:fixed;
-    font-size:22px;
-    opacity:.55;
+    font-size:20px;
+    opacity:.5;
     pointer-events:none;
-    animation:float 9s ease-in-out infinite;
-    filter:drop-shadow(0 4px 6px rgba(0,0,0,.08));
+    animation:embers 10s ease-in-out infinite;
+    filter:drop-shadow(0 0 8px rgba(255,138,61,.35));
   }
-  @keyframes float{
-    0%,100%{transform:translateY(0) rotate(0deg);}
-    50%{transform:translateY(-26px) rotate(12deg);}
+  @keyframes embers{
+    0%{transform:translateY(0) translateX(0) rotate(0deg);opacity:0;}
+    12%{opacity:.55;}
+    50%{transform:translateY(-34px) translateX(8px) rotate(10deg);}
+    88%{opacity:.4;}
+    100%{transform:translateY(-64px) translateX(-6px) rotate(-8deg);opacity:0;}
   }
 
   header{
@@ -57,24 +68,55 @@
     z-index:1;
   }
   h1{
+    font-family:Georgia,"Times New Roman",serif;
     font-size:clamp(2rem,6vw,2.9rem);
     margin:6px 0 4px;
-    letter-spacing:-.5px;
+    letter-spacing:.5px;
+    background:linear-gradient(135deg,#ffd27a,var(--ember) 55%,var(--accent2));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    text-shadow:0 0 34px rgba(255,138,61,.25);
   }
   h1 .q{
     display:inline-block;
-    animation:wiggle 3.2s ease-in-out infinite;
+    animation:flicker 3s ease-in-out infinite;
+    filter:drop-shadow(0 0 10px rgba(255,138,61,.55));
   }
-  @keyframes wiggle{
-    0%,100%{transform:rotate(0deg);}
-    25%{transform:rotate(-8deg);}
-    75%{transform:rotate(8deg);}
+  @keyframes flicker{
+    0%,100%{transform:scale(1) rotate(0deg);opacity:1;}
+    45%{transform:scale(1.08) rotate(-4deg);opacity:.92;}
+    75%{transform:scale(.97) rotate(4deg);opacity:1;}
   }
   .tagline{
-    margin:0 0 6px;
+    margin:0 0 22px;
     font-size:1.02rem;
-    opacity:.78;
+    color:var(--muted);
   }
+
+  .roll-btn{
+    font-family:inherit;
+    font-weight:700;
+    font-size:1.35rem;
+    color:#1b0b2e;
+    background:linear-gradient(135deg,#ffd27a,var(--accent) 45%,var(--ember) 100%);
+    border:none;
+    border-radius:999px;
+    padding:22px 52px;
+    cursor:pointer;
+    transition:transform .15s ease, box-shadow .15s ease;
+    z-index:1;
+    position:relative;
+    box-shadow:0 0 0 rgba(255,138,61,0);
+    animation:pulseGlow 2.6s ease-in-out infinite;
+  }
+  @keyframes pulseGlow{
+    0%,100%{box-shadow:0 16px 34px rgba(0,0,0,.5), 0 0 24px rgba(255,138,61,.35);}
+    50%{box-shadow:0 16px 40px rgba(0,0,0,.55), 0 0 44px rgba(255,138,61,.6);}
+  }
+  .roll-btn:hover{transform:translateY(-2px) scale(1.02);}
+  .roll-btn:active{transform:translateY(1px) scale(.98);}
+  .roll-btn:disabled{opacity:.7;cursor:default;transform:none;}
 
   .stats{
     display:flex;
@@ -82,8 +124,8 @@
     justify-content:center;
     flex-wrap:wrap;
     font-size:.85rem;
-    opacity:.75;
-    margin:6px 0 18px;
+    color:var(--muted);
+    margin:22px 0 14px;
   }
   .stats span strong{color:var(--accent);}
 
@@ -100,47 +142,32 @@
   select, .icon-btn{
     font-family:inherit;
     font-size:.95rem;
-    border:none;
+    border:1px solid var(--card-border);
     border-radius:999px;
     padding:10px 16px;
     background:var(--card);
+    backdrop-filter:blur(6px);
     box-shadow:var(--shadow);
     cursor:pointer;
     color:var(--ink);
   }
+  select option{color:#1b0b2e;}
   .icon-btn{
     padding:10px 12px;
     font-size:1.05rem;
     line-height:1;
   }
   .icon-btn[aria-pressed="true"]{
-    background:var(--accent);
-    color:#fff;
+    background:linear-gradient(135deg,var(--accent),var(--ember));
+    color:#1b0b2e;
+    border-color:transparent;
   }
-
-  .roll-btn{
-    font-family:inherit;
-    font-weight:700;
-    font-size:1.2rem;
-    color:#fff;
-    background:linear-gradient(135deg,var(--accent),var(--accent2));
-    border:none;
-    border-radius:999px;
-    padding:18px 40px;
-    box-shadow:0 14px 28px rgba(124,92,255,.35);
-    cursor:pointer;
-    transition:transform .15s ease, box-shadow .15s ease;
-    z-index:1;
-  }
-  .roll-btn:hover{transform:translateY(-2px);}
-  .roll-btn:active{transform:translateY(1px) scale(.98);}
-  .roll-btn:disabled{opacity:.7;cursor:default;transform:none;}
 
   main{
     width:100%;
     max-width:760px;
     z-index:1;
-    margin-top:26px;
+    margin-top:6px;
   }
 
   .theme-chip{
@@ -149,6 +176,7 @@
     gap:6px;
     margin:0 auto 14px;
     background:var(--card);
+    border:1px solid var(--card-border);
     box-shadow:var(--shadow);
     border-radius:999px;
     padding:6px 16px;
@@ -173,7 +201,9 @@
 
   .option{
     flex:1;
-    background:var(--card);
+    background:
+      repeating-linear-gradient(135deg, rgba(255,255,255,.025) 0 2px, transparent 2px 16px),
+      linear-gradient(160deg, rgba(46,22,68,.85), rgba(18,8,32,.9));
     border-radius:22px;
     padding:26px 22px;
     box-shadow:var(--shadow);
@@ -184,8 +214,9 @@
     font-size:1.15rem;
     font-weight:600;
     line-height:1.4;
+    color:var(--ink);
     cursor:pointer;
-    border:3px solid transparent;
+    border:3px solid var(--card-border);
     transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;
     min-height:150px;
     opacity:0;
@@ -195,12 +226,15 @@
     opacity:1;
     transform:translateY(0) scale(1);
   }
-  .option:hover{transform:translateY(-3px);}
+  .option:hover{transform:translateY(-3px); border-color:rgba(255,180,84,.55);}
   .option.picked{
     border-color:var(--accent);
-    background:linear-gradient(160deg,#fff,#f2edff);
+    box-shadow:var(--shadow), 0 0 26px rgba(255,180,84,.4);
+    background:
+      repeating-linear-gradient(135deg, rgba(255,255,255,.03) 0 2px, transparent 2px 16px),
+      linear-gradient(160deg, rgba(70,32,20,.85), rgba(30,12,42,.9));
   }
-  .option.faded{opacity:.55 !important;}
+  .option.faded{opacity:.45 !important;}
   .option .label{
     position:absolute;
     top:10px;
@@ -209,7 +243,7 @@
     font-weight:800;
     letter-spacing:1px;
     color:var(--accent2);
-    opacity:.7;
+    opacity:.85;
   }
   .option{position:relative;}
   .pick-tag{
@@ -226,15 +260,15 @@
     align-items:center;
     justify-content:center;
     font-weight:800;
-    font-size:.95rem;
-    color:#fff;
-    background:var(--ink);
+    font-size:.9rem;
+    color:#1b0b2e;
+    background:linear-gradient(135deg,#ffd27a,var(--accent));
     width:46px;
     height:46px;
     border-radius:50%;
     margin:auto -23px;
     z-index:2;
-    box-shadow:var(--shadow);
+    box-shadow:var(--shadow), 0 0 18px rgba(255,180,84,.5);
     flex-shrink:0;
   }
   @media (max-width:640px){
@@ -243,7 +277,7 @@
 
   .placeholder{
     text-align:center;
-    opacity:.6;
+    color:var(--muted);
     padding:50px 20px;
     font-size:1.05rem;
   }
@@ -260,21 +294,23 @@
   .history-nav.show{opacity:1;}
   .history-nav button{
     background:var(--card);
-    border:none;
+    border:1px solid var(--card-border);
     border-radius:50%;
     width:38px;
     height:38px;
     box-shadow:var(--shadow);
     cursor:pointer;
     font-size:1rem;
+    color:var(--ink);
   }
   .history-nav button:disabled{opacity:.35;cursor:default;}
-  .history-nav .pos{font-size:.85rem;opacity:.7;}
+  .history-nav .pos{font-size:.85rem;color:var(--muted);}
 
   footer{
     margin-top:44px;
     font-size:.78rem;
-    opacity:.55;
+    color:var(--muted);
+    opacity:.7;
     text-align:center;
     z-index:1;
   }
@@ -283,14 +319,17 @@
 <body>
 
 <header>
-  <h1><span class="q">🤔</span> Would You Rather?</h1>
+  <h1><span class="q">🐉</span> Would You Rather?</h1>
   <p class="tagline">Press the button. Get whimsically stuck between two impossible, weirdly-linked options.</p>
-  <div class="stats">
-    <span>Dilemmas faced: <strong id="statSeen">0</strong></span>
-    <span>Team A: <strong id="statA">0</strong></span>
-    <span>Team B: <strong id="statB">0</strong></span>
-  </div>
 </header>
+
+<button class="roll-btn" id="rollBtn">🔥 Give Me a Dilemma</button>
+
+<div class="stats">
+  <span>Dilemmas faced: <strong id="statSeen">0</strong></span>
+  <span>Team A: <strong id="statA">0</strong></span>
+  <span>Team B: <strong id="statB">0</strong></span>
+</div>
 
 <div class="controls">
   <select id="themeSelect" aria-label="Category">
@@ -298,8 +337,6 @@
   </select>
   <button class="icon-btn" id="voiceToggle" title="Read dilemmas aloud" aria-pressed="false">🔊</button>
 </div>
-
-<button class="roll-btn" id="rollBtn">✨ Give Me a Dilemma</button>
 
 <main>
   <div class="chip-wrap"><div class="theme-chip" id="themeChip"></div></div>
@@ -516,7 +553,7 @@
     ]},
   ];
 
-  const SPARKLES = ['✨','🌈','🦄','🎈','🌙','⭐','🍀','🌀'];
+  const SPARKLES = ['🔥','🐉','🔮','⚡','🦇','🌙','⭐','🕯️'];
   const sparkleWrap = document.body;
   for(let i=0;i<10;i++){
     const s = document.createElement('div');
