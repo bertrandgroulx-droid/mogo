@@ -59,3 +59,27 @@ python3 -m http.server 8000
    linking to each full recipe.
 
 No API key required.
+
+## Bonus: Would You Rather?
+
+Also in this repo: [`would-you-rather.html`](would-you-rather.html), a
+one-button whimsical dilemma generator. Each press serves up two impossible,
+weirdly-linked options ("Would you rather be a cloud that only rains during
+weddings, or a rainbow that only appears during arguments?") drawn from
+themed categories — superpowers with a catch, kitchen objects with feelings,
+fantasy creatures, cosmic phenomena, and more. Same rules as Mogo: single
+file, no build step, no dependencies. Open it directly or serve it alongside
+`index.html`.
+
+## Deploying with GitHub Pages
+
+This repo ships a GitHub Actions workflow (`.github/workflows/pages.yml`) that
+deploys the site on every push to `main`. Set **Settings → Pages → Build and
+deployment → Source** to **GitHub Actions** (one time, or it self-enables on
+first deploy). Once deployed:
+
+- Mogo: `https://<your-username>.github.io/mogo/`
+- Would You Rather: `https://<your-username>.github.io/mogo/would-you-rather.html`
+
+On iPhone/Android, open either URL in Safari/Chrome, then use **Share → Add to
+Home Screen** to install it as a full-screen, app-like icon.
