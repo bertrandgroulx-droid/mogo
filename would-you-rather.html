@@ -596,7 +596,7 @@
     return { theme, a: items[i], b: items[j], picked:null };
   }
 
-  function render(entry, opts={}){
+  function render(entry){
     themeChip.textContent = `${entry.theme.emoji} ${entry.theme.label}`;
     themeChip.classList.add('show');
 
@@ -618,12 +618,7 @@
 
     updateHistoryNav();
 
-    if(opts.playCue){
-      playRollCue();
-      if(voiceOn) setTimeout(()=>speak(`Would you rather be ${entry.a}? Or ${entry.b}?`), 3400);
-    } else if(voiceOn){
-      speak(`Would you rather be ${entry.a}? Or ${entry.b}?`);
-    }
+    if(voiceOn) speak(`Would you rather be ${entry.a}? Or ${entry.b}?`);
   }
 
   function applyPickedState(entry, optA, optB){
@@ -660,7 +655,7 @@
     history.splice(cursor+1);
     history.push(entry);
     cursor = history.length-1;
-    render(entry, {playCue:true});
+    render(entry);
   }
 
   rollBtn.addEventListener('click', roll);
@@ -689,83 +684,6 @@
     u.rate = 0.98;
     u.pitch = 1.05;
     window.speechSynthesis.speak(u);
-  }
-
-  let audioCtx = null;
-  function getAudioCtx(){
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if(!AC) return null;
-    if(!audioCtx) audioCtx = new AC();
-    if(audioCtx.state === 'suspended') audioCtx.resume();
-    return audioCtx;
-  }
-
-  function playWhir(duration){
-    const ctx = getAudioCtx();
-    if(!ctx) return;
-    const now = ctx.currentTime;
-
-    const master = ctx.createGain();
-    master.gain.setValueAtTime(0, now);
-    master.gain.linearRampToValueAtTime(0.32, now + 0.15);
-    master.gain.setValueAtTime(0.32, now + duration - 0.35);
-    master.gain.linearRampToValueAtTime(0, now + duration);
-    master.connect(ctx.destination);
-
-    // airy noise layer for the "whir" texture
-    const bufferSize = Math.floor(ctx.sampleRate * duration);
-    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = noiseBuffer.getChannelData(0);
-    for(let i=0;i<bufferSize;i++) data[i] = Math.random()*2 - 1;
-    const noise = ctx.createBufferSource();
-    noise.buffer = noiseBuffer;
-
-    const noiseFilter = ctx.createBiquadFilter();
-    noiseFilter.type = 'bandpass';
-    noiseFilter.Q.value = 0.7;
-    noiseFilter.frequency.setValueAtTime(300, now);
-    noiseFilter.frequency.linearRampToValueAtTime(900, now + duration*0.6);
-    noiseFilter.frequency.linearRampToValueAtTime(500, now + duration);
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.value = 0.45;
-    noise.connect(noiseFilter).connect(noiseGain).connect(master);
-
-    // detuned tone pair for the magical spin-up
-    const oscFilter = ctx.createBiquadFilter();
-    oscFilter.type = 'lowpass';
-    oscFilter.frequency.value = 1200;
-    const oscGain = ctx.createGain();
-    oscGain.gain.value = 0.16;
-    oscFilter.connect(oscGain).connect(master);
-
-    const oscillators = [0, 12].map(detune=>{
-      const osc = ctx.createOscillator();
-      osc.type = 'sawtooth';
-      osc.detune.value = detune;
-      osc.frequency.setValueAtTime(90, now);
-      osc.frequency.exponentialRampToValueAtTime(260, now + duration*0.7);
-      osc.frequency.exponentialRampToValueAtTime(180, now + duration);
-      osc.connect(oscFilter);
-      return osc;
-    });
-
-    // slow tremolo so the tone pulses like a spinning charm
-    const lfo = ctx.createOscillator();
-    lfo.type = 'sine';
-    lfo.frequency.value = 7;
-    const lfoGain = ctx.createGain();
-    lfoGain.gain.value = 0.15;
-    lfo.connect(lfoGain).connect(oscGain.gain);
-
-    [noise, ...oscillators, lfo].forEach(node=>{
-      node.start(now);
-      node.stop(now + duration);
-    });
-  }
-
-  function playRollCue(){
-    playWhir(3);
-    setTimeout(()=>speak('Would you rather?'), 2700);
   }
 
 })();
