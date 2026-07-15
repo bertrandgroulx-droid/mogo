@@ -319,6 +319,9 @@
     <option value="">🎲 Any category</option>
   </select>
   <button class="icon-btn" id="voiceToggle" title="Read dilemmas aloud" aria-pressed="false">🔊</button>
+  <select id="voicePicker" aria-label="Voice" hidden>
+    <option value="">Default voice</option>
+  </select>
 </div>
 
 <main>
@@ -565,11 +568,13 @@
   const nextBtn = document.getElementById('nextBtn');
   const historyPos = document.getElementById('historyPos');
   const voiceToggle = document.getElementById('voiceToggle');
+  const voicePicker = document.getElementById('voicePicker');
 
   const history = [];
   let cursor = -1;
   let lastKey = null;
   let voiceOn = false;
+  let chosenVoiceName = localStorage.getItem('wyr-voice') || '';
 
   function pickDilemma(){
     const chosenId = themeSelect.value;
@@ -671,11 +676,42 @@
     voiceOn = !voiceOn;
     voiceToggle.setAttribute('aria-pressed', String(voiceOn));
     voiceToggle.textContent = voiceOn ? '🔊' : '🔇';
+    voicePicker.hidden = !voiceOn || voicePicker.options.length <= 1;
     if(voiceOn && history[cursor]){
       const e = history[cursor];
       speak(`Would you rather be ${e.a}? Or ${e.b}?`);
     }
   });
+
+  function populateVoices(){
+    if(!('speechSynthesis' in window)) return;
+    const all = window.speechSynthesis.getVoices();
+    if(!all.length) return; // not ready yet on some browsers
+    let list = all.filter(v=>/^en/i.test(v.lang));
+    if(!list.length) list = all;
+    list.sort((a,b)=>a.name.localeCompare(b.name));
+
+    voicePicker.innerHTML = '<option value="">Default voice</option>';
+    list.forEach(v=>{
+      const opt = document.createElement('option');
+      opt.value = v.name;
+      opt.textContent = `${v.name} (${v.lang})`;
+      if(v.name === chosenVoiceName) opt.selected = true;
+      voicePicker.appendChild(opt);
+    });
+    voicePicker.hidden = !voiceOn || list.length < 1;
+  }
+
+  voicePicker.addEventListener('change', ()=>{
+    chosenVoiceName = voicePicker.value;
+    localStorage.setItem('wyr-voice', chosenVoiceName);
+    speak('Would you rather?');
+  });
+
+  if('speechSynthesis' in window){
+    populateVoices();
+    window.speechSynthesis.onvoiceschanged = populateVoices;
+  }
 
   function speak(text){
     if(!('speechSynthesis' in window)) return;
@@ -683,6 +719,12 @@
     const u = new SpeechSynthesisUtterance(text);
     u.rate = 0.98;
     u.pitch = 1.05;
+    if(chosenVoiceName){
+      try{
+        const v = window.speechSynthesis.getVoices().find(x=>x.name===chosenVoiceName);
+        if(v) u.voice = v;
+      }catch(e){ /* fall back to default voice */ }
+    }
     window.speechSynthesis.speak(u);
   }
 
