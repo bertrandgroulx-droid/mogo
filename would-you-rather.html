@@ -1035,9 +1035,10 @@
   let voiceOn = false;
   let chosenVoiceName = localStorage.getItem('wyr-voice') || '';
 
-  // Every dilemma pairing seen this session (cleared on page reload), so
-  // nothing repeats until every combination in the current filter has come up once.
-  const seenPairs = new Set();
+  // Every item shown this session, in EITHER field A or field B (cleared on
+  // page reload) — an item counts as used no matter which side it appeared
+  // on, so the same line never resurfaces in a different pairing either.
+  const seenItems = new Set();
   let lastPickedKey = null;
 
   function pairKey(themeId, i, j){
@@ -1045,47 +1046,54 @@
     return themeId+'|'+lo+'|'+hi;
   }
 
+  function eligibleThemesFor(pool){
+    const list = [];
+    pool.forEach(theme=>{
+      const n = theme.items.length;
+      const unused = [];
+      for(let i=0;i<n;i++){
+        if(!seenItems.has(theme.id+'|'+i)) unused.push(i);
+      }
+      if(unused.length >= 2) list.push({ theme, unused });
+    });
+    return list;
+  }
+
   function pickDilemma(){
     const chosenId = themeSelect.value;
     const pool = chosenId ? THEMES.filter(t=>t.id===chosenId) : THEMES;
 
-    const gather = (excludeKey) => {
-      const list = [];
+    let eligible = eligibleThemesFor(pool);
+    if(!eligible.length){
+      // every item in this filter has been used this session — start a fresh lap
       pool.forEach(theme=>{
         const n = theme.items.length;
-        for(let i=0;i<n;i++){
-          for(let j=i+1;j<n;j++){
-            const key = pairKey(theme.id, i, j);
-            if(seenPairs.has(key)) continue;
-            if(excludeKey && key===excludeKey) continue;
-            list.push({ theme, i, j, key });
-          }
-        }
+        for(let i=0;i<n;i++) seenItems.delete(theme.id+'|'+i);
       });
-      return list;
-    };
-
-    let candidates = gather(lastPickedKey);
-    if(!candidates.length) candidates = gather(null);
-
-    if(!candidates.length){
-      // every pairing in this filter has been seen this session — start a fresh lap
-      pool.forEach(theme=>{
-        const n = theme.items.length;
-        for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) seenPairs.delete(pairKey(theme.id,i,j));
-      });
-      candidates = gather(lastPickedKey);
-      if(!candidates.length) candidates = gather(null);
+      eligible = eligibleThemesFor(pool);
     }
 
-    const choice = candidates[Math.floor(Math.random()*candidates.length)];
-    seenPairs.add(choice.key);
-    lastPickedKey = choice.key;
+    const { theme, unused } = eligible[Math.floor(Math.random()*eligible.length)];
+
+    let i, j, key, attempts = 0;
+    do{
+      const idx1 = Math.floor(Math.random()*unused.length);
+      let idx2 = Math.floor(Math.random()*unused.length);
+      while(idx2===idx1) idx2 = Math.floor(Math.random()*unused.length);
+      i = unused[idx1];
+      j = unused[idx2];
+      key = pairKey(theme.id, i, j);
+      attempts++;
+    } while(key===lastPickedKey && unused.length>2 && attempts<10);
+
+    seenItems.add(theme.id+'|'+i);
+    seenItems.add(theme.id+'|'+j);
+    lastPickedKey = key;
 
     const swap = Math.random() < 0.5;
-    const a = swap ? choice.j : choice.i;
-    const b = swap ? choice.i : choice.j;
-    return { theme: choice.theme, a: choice.theme.items[a], b: choice.theme.items[b], picked:null };
+    const a = swap ? j : i;
+    const b = swap ? i : j;
+    return { theme, a: theme.items[a], b: theme.items[b], picked:null };
   }
 
   function render(entry){
