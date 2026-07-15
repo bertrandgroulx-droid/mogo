@@ -1032,33 +1032,60 @@
 
   const history = [];
   let cursor = -1;
-  let lastKey = null;
   let voiceOn = false;
   let chosenVoiceName = localStorage.getItem('wyr-voice') || '';
+
+  // Every dilemma pairing seen this session (cleared on page reload), so
+  // nothing repeats until every combination in the current filter has come up once.
+  const seenPairs = new Set();
+  let lastPickedKey = null;
+
+  function pairKey(themeId, i, j){
+    const lo = Math.min(i,j), hi = Math.max(i,j);
+    return themeId+'|'+lo+'|'+hi;
+  }
 
   function pickDilemma(){
     const chosenId = themeSelect.value;
     const pool = chosenId ? THEMES.filter(t=>t.id===chosenId) : THEMES;
-    const theme = pool[Math.floor(Math.random()*pool.length)];
-    const items = theme.items;
 
-    let i = Math.floor(Math.random()*items.length);
-    let j = Math.floor(Math.random()*items.length);
-    while(j===i) j = Math.floor(Math.random()*items.length);
+    const gather = (excludeKey) => {
+      const list = [];
+      pool.forEach(theme=>{
+        const n = theme.items.length;
+        for(let i=0;i<n;i++){
+          for(let j=i+1;j<n;j++){
+            const key = pairKey(theme.id, i, j);
+            if(seenPairs.has(key)) continue;
+            if(excludeKey && key===excludeKey) continue;
+            list.push({ theme, i, j, key });
+          }
+        }
+      });
+      return list;
+    };
 
-    let key = theme.id+'|'+i+'|'+j;
-    // avoid immediately repeating the exact same pair back-to-back
-    let guard = 0;
-    while(key===lastKey && guard<20){
-      i = Math.floor(Math.random()*items.length);
-      j = Math.floor(Math.random()*items.length);
-      while(j===i) j = Math.floor(Math.random()*items.length);
-      key = theme.id+'|'+i+'|'+j;
-      guard++;
+    let candidates = gather(lastPickedKey);
+    if(!candidates.length) candidates = gather(null);
+
+    if(!candidates.length){
+      // every pairing in this filter has been seen this session — start a fresh lap
+      pool.forEach(theme=>{
+        const n = theme.items.length;
+        for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) seenPairs.delete(pairKey(theme.id,i,j));
+      });
+      candidates = gather(lastPickedKey);
+      if(!candidates.length) candidates = gather(null);
     }
-    lastKey = key;
 
-    return { theme, a: items[i], b: items[j], picked:null };
+    const choice = candidates[Math.floor(Math.random()*candidates.length)];
+    seenPairs.add(choice.key);
+    lastPickedKey = choice.key;
+
+    const swap = Math.random() < 0.5;
+    const a = swap ? choice.j : choice.i;
+    const b = swap ? choice.i : choice.j;
+    return { theme: choice.theme, a: choice.theme.items[a], b: choice.theme.items[b], picked:null };
   }
 
   function render(entry){
