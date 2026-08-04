@@ -1082,8 +1082,9 @@
     const minShow = new Promise((r) => setTimeout(r, 2000));
 
     let dishes = [];
-    // If TheMealDB covers this country, try it for real recipe photos/links.
-    if (country.area) {
+    // Use TheMealDB photos only in unfiltered mode; when a filter is active we use
+    // the curated dishes (whose types we can match), so the view is never empty.
+    if (country.area && currentFilter === "all") {
       try {
         const dishData = await getJSON(
           "https://www.themealdb.com/api/json/v1/1/filter.php?a=" + encodeURIComponent(country.area)
@@ -1128,14 +1129,36 @@
     } catch (_) { /* speech not available — stay silent */ }
   }
 
-  // Random discovery (respects the no-repeat cycle).
+  // Does this country have at least one dish matching the active filter?
+  function countryMatchesFilter(country) {
+    if (currentFilter === "all") return true;
+    return country.dishes.some((d) => d[2] === currentFilter);
+  }
+
+  // Random discovery. With a filter active, skip (and log as searched) any country
+  // that has no matching dish, and keep going until one does.
   async function discover() {
     speakMogo();
-    const { country, justReset } = pickCountry();
-    const note = justReset
-      ? "🌍 You've explored every country — starting a fresh trip around the globe!"
-      : "";
-    await present(country, note);
+
+    let chosen = null;
+    let justReset = false;
+    let skipped = 0;
+    for (let i = 0; i < COUNTRIES.length + 1; i++) {
+      const picked = pickCountry(); // marks the country as seen (i.e. "searched")
+      if (picked.justReset) justReset = true;
+      if (countryMatchesFilter(picked.country)) { chosen = picked.country; break; }
+      skipped++; // logged as searched, move on
+    }
+    if (!chosen) chosen = pickCountry().country; // safety net (shouldn't happen)
+
+    let note = "";
+    if (justReset) {
+      note = "🌍 You've explored every country — starting a fresh trip around the globe!";
+    } else if (skipped > 0) {
+      note = `⏭️ Skipped ${skipped} countr${skipped === 1 ? "y" : "ies"} with no ` +
+        `${FILTER_LABELS[currentFilter]} dishes.`;
+    }
+    await present(chosen, note);
   }
 
   // Jump straight to a chosen country.
