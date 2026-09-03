@@ -1,6 +1,6 @@
 {
-  "name": "Mogo",
-  "short_name": "Mogo",
+  "name": "MOGO Recipes",
+  "short_name": "MOGO Recipes",
   "description": "Spin the globe, find a feast — a random country and recipes for its most popular dishes.",
   "start_url": "./",
   "scope": "./",
