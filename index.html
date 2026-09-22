@@ -116,7 +116,11 @@
   /* ---------- Sound toggle ---------- */
   .sound-toggle {
     position: fixed;
-    top: 10px;
+    /* Clear of the shozbot studio bar when it is present. The bar pushes normal
+       content down, but this button is fixed, so it would otherwise sit
+       underneath. The 0px fallback keeps this exactly where it was if the kit
+       is ever absent. */
+    top: calc(10px + var(--shozkit-height, 0px));
     right: 12px;
     z-index: 10;
     width: 42px;
@@ -1440,5 +1444,9 @@
   updateProgress();
 })();
 </script>
+
+<!-- The shozbot studio kit: the "back to shozbot" bar at the top, and visitor
+     counting. One line, so both are changed in one place rather than seven. -->
+<script src="https://shozbot.com/kit/kit.js" data-app="Mogo" defer></script>
 </body>
 </html>
