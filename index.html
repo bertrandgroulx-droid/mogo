@@ -4,6 +4,21 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Mogo — Spin the globe, find a feast</title>
+<link rel="canonical" href="https://shozbot.com/mogo/">
+<script>
+  /* This app lives at shozbot.com/mogo/ now. Anyone still arriving at the old
+     GitHub Pages address is moved across, so that scores, streaks and settings
+     — which a browser files under whichever address they were made on — pile up
+     in one place instead of quietly splitting in two.
+
+     The hostname test is load-bearing, not defensive. shozbot.com serves this
+     very file through a rewrite, so without the test the redirect would fire
+     there too and bounce the browser against the same address for ever. */
+  (function () {
+    if (location.hostname !== "bertrandgroulx-droid.github.io") return;
+    location.replace("https://shozbot.com/mogo/" + location.search + location.hash);
+  })();
+</script>
 <meta name="description" content="Press a button and Mogo whisks you to a random country, then serves up recipes for its most popular dishes." />
 <meta name="theme-color" content="#0f2027" />
 <meta name="apple-mobile-web-app-title" content="MOGO Recipes" />
