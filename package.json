@@ -1,0 +1,8 @@
+{
+  "name": "mogo",
+  "private": true,
+  "description": "Press the button. Spin the globe. Cook the world. A single index.html with no build step and no dependencies; the tests drive it in headless Chromium.",
+  "scripts": {
+    "test": "node --test"
+  }
+}

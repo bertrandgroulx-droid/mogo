@@ -33,6 +33,9 @@ you company during the search.
 - 🔊 **Silly "Mogo!" voice** — pressing the random button speaks "Mogo" in a
   random caveman / toddler / minion / computer voice (via the browser's speech
   synthesis). A 🔊 toggle mutes it.
+- 🔗 **Share a link** — the icon beside the name opens the share sheet on a
+  phone, or copies the link on a laptop. With a country on screen the link
+  carries it (`?country=JP`), so opening it lands on Japan.
 - 📱 **Responsive & self-contained** — a single `index.html`, no build step,
   no dependencies.
 
@@ -61,3 +64,13 @@ python3 -m http.server 8000
    linking to each full recipe.
 
 No API key required.
+
+## Tests
+
+```bash
+npm test
+```
+
+Drives the page in headless Chromium through Playwright (found by normal module
+resolution, `PLAYWRIGHT_LIB`, or the studio container's shared install) and
+checks the share link in each state. Without Playwright the tests are skipped.
