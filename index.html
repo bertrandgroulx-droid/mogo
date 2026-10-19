@@ -89,6 +89,52 @@
     filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
     animation: bob 3s ease-in-out infinite;
   }
+  /* ---------- Share ---------- */
+  /* The share icon hangs off the right end of the wordmark. <body> centres the
+     header, so a left padding the size of the icon's footprint keeps the word
+     itself exactly where it was; the icon sits beside it rather than shifting it. */
+  .logo { padding-left: calc(34px + 0.6rem); }
+  .share-btn {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  .share-btn svg { width: 18px; height: 18px; }
+  .share-btn:hover,
+  .share-btn:focus-visible { color: var(--text); background: var(--card); }
+  .share-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  /* "Link copied" (or the link itself, where nothing can copy it), for ~1.8s. */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 1.5rem;
+    transform: translateX(-50%);
+    max-width: calc(100vw - 2rem);
+    padding: 0.55rem 1rem;
+    border-radius: 999px;
+    border: 1px solid var(--card-border);
+    background: var(--bg-1);
+    color: var(--text);
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 10;
+  }
+  .toast.show { opacity: 1; }
+
   .tagline {
     margin: 0.25rem 0 2rem;
     color: var(--muted);
@@ -453,6 +499,12 @@
 <body>
   <header class="logo">
     <span class="logo-text" aria-label="mogo">m<span class="logo-o" style="animation-delay: -1s">🌍</span>g<span class="logo-o" style="animation-delay: -2s">🌍</span></span>
+    <button id="shareBtn" class="share-btn" type="button" aria-label="Share a link to this">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11H5v9h14v-9h-1"/>
+      </svg>
+    </button>
   </header>
   <p class="tagline">Press the button. Spin the globe. Cook the world.</p>
 
@@ -1311,6 +1363,66 @@
 
   btn.addEventListener("click", discover);
 
+  // ---------- Share ----------
+  // The link is always the shozbot.com address, read from the page's canonical
+  // link rather than location.href: this same file is served from the old
+  // github.io address too, and a link should point everyone at one place.
+  const CANONICAL =
+    (document.querySelector('link[rel="canonical"]') || {}).href || "https://shozbot.com/mogo/";
+
+  // A flag emoji is the country's two-letter ISO code written in regional
+  // indicator letters, so the code comes straight out of the flag: 🇯🇵 → JP.
+  // Every one of the 199 flags decodes to a distinct code.
+  function countryCode(info) {
+    return Array.from(info.flag, (ch) => String.fromCharCode(65 + ch.codePointAt(0) - 0x1f1e6)).join("");
+  }
+
+  function findByCode(code) {
+    code = String(code || "").trim().toUpperCase();
+    return COUNTRIES.find((c) => countryCode(c) === code) || null;
+  }
+
+  // What the share button offers: the country on screen, or the plain address.
+  // While the globe is spinning nothing is on screen, so that is the plain link.
+  function shareLink() {
+    const entry = loader.classList.contains("active") ? null : history[historyIndex];
+    if (!entry) return { url: CANONICAL, title: "Mogo" };
+    return {
+      url: CANONICAL + "?country=" + countryCode(entry.info),
+      title: "Mogo · " + entry.info.country,
+    };
+  }
+
+  let toastTimer = null;
+  function showToast(text) {
+    let el = document.querySelector(".toast");
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "toast";
+      el.setAttribute("role", "status");
+      document.body.appendChild(el);
+    }
+    el.textContent = text;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), 1800);
+  }
+
+  // Phone: the share sheet. Laptop: copy the link and say so. Neither: show it.
+  async function share() {
+    const { url, title } = shareLink();
+    if (navigator.share) {
+      try { await navigator.share({ title, url }); return; } catch (err) {
+        if (err && err.name === "AbortError") return; // the user closed the sheet
+      }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try { await navigator.clipboard.writeText(url); showToast("Link copied"); return; } catch (_) {}
+    }
+    showToast(url);
+  }
+  document.getElementById("shareBtn").addEventListener("click", share);
+
   // Changing the filter re-renders the country currently in view (no new fetch).
   const dietFilter = document.getElementById("dietFilter");
   dietFilter.addEventListener("change", () => {
@@ -1333,6 +1445,11 @@
   });
 
   updateProgress();
+
+  // A shared link carries the country: ?country=JP opens on Japan. An unknown
+  // or missing code is simply the plain page.
+  const wanted = findByCode(new URLSearchParams(location.search).get("country"));
+  if (wanted) goToCountry(wanted.country);
 })();
 </script>
 
