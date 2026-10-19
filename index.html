@@ -1447,9 +1447,14 @@
   updateProgress();
 
   // A shared link carries the country: ?country=JP opens on Japan. An unknown
-  // or missing code is simply the plain page.
+  // or missing code is simply the plain page. Once opened, the query comes off
+  // the address, so a reload after the random button does not bring the linked
+  // country back. (window.history: the app's own `history` shadows the global.)
   const wanted = findByCode(new URLSearchParams(location.search).get("country"));
-  if (wanted) goToCountry(wanted.country);
+  if (wanted) {
+    goToCountry(wanted.country);
+    try { window.history.replaceState(null, "", location.pathname + location.hash); } catch (_) {}
+  }
 })();
 </script>
 

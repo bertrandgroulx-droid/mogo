@@ -103,6 +103,22 @@ test("an unknown code is the plain page", { skip }, async () => {
   await context.close();
 });
 
+test("the ?country= query comes off the address once opened, so a reload is the plain page", { skip }, async () => {
+  const { page, context } = await open("?country=JP");
+  await waitForCountry(page);
+  assert.equal(await page.evaluate(() => location.search), "");
+  await page.click("#discoverBtn");
+  await page.waitForFunction(() => document.querySelector(".country-name") && !document.querySelector(".country-name").textContent.includes("Japan"), null, { timeout: 10000 });
+  await page.reload();
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => location.search), "");
+  assert.equal(await page.locator(".country-name").count(), 0);
+  assert.equal(await page.locator(".loader.active").count(), 0);
+  await page.click("#shareBtn");
+  assert.deepEqual(await page.evaluate(() => window.__copied), ["https://shozbot.com/mogo/"]);
+  await context.close();
+});
+
 test("paging back through history shares the country now on screen", { skip }, async () => {
   const { page, context } = await open("?country=PE");
   await waitForCountry(page);
